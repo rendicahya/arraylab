@@ -102,6 +102,8 @@
 			'center right'
 			'bottom bottom';
 		height: calc(100dvh - var(--header-h));
+		/* Short laptop screens give the visualization more of the height. */
+		--code-h: clamp(180px, 28dvh, 280px);
 	}
 	.workspace.has-left {
 		grid-template-columns: 310px minmax(0, 1fr) 270px;
@@ -125,6 +127,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.8rem;
+		container: center / inline-size;
 	}
 	.right {
 		grid-area: right;
@@ -177,8 +180,23 @@
 	.small {
 		font-size: 0.85rem;
 	}
+	/* Wide visualization area: larger cells instead of empty space. */
+	@container center (min-width: 720px) {
+		.tool-body {
+			--cell-font: 1.08rem;
+			--cell-min: 3rem;
+			--cell-h: 2.65rem;
+		}
+	}
+	@container center (min-width: 1000px) {
+		.tool-body {
+			--cell-font: 1.18rem;
+			--cell-min: 3.3rem;
+			--cell-h: 2.9rem;
+		}
+	}
 	:global(:root[data-fullscreen='true']) .workspace {
-		--code-h: 230px;
+		--code-h: clamp(170px, 25dvh, 260px);
 	}
 	:global(:root[data-fullscreen='true']) .center {
 		padding: 0.6rem 0.9rem;

@@ -22,6 +22,16 @@
 		'np.arange(1_000_000).reshape(1000, 1000)'
 	];
 
+	/** One-click starting points for typed numbers: different ndim and dtypes. */
+	const LITERAL_PRESETS: { label: string; text: string }[] = [
+		{ label: '1-D', text: '1 2 3 4 5 6' },
+		{ label: '2-D', text: '1 2 3\n4 5 6' },
+		{ label: '3-D', text: '1 2 3\n4 5 6\n\n7 8 9\n10 11 12' },
+		{ label: 'column', text: '1\n2\n3' },
+		{ label: 'floats', text: '0.5 1.5 2.5\n3.5 4.5 5.5' },
+		{ label: 'booleans', text: 'True False True\nFalse True False' }
+	];
+
 	const shape = $derived(lab.provisional?.shape ?? null);
 
 	function applyExpr(event: SubmitEvent) {
@@ -50,17 +60,33 @@
 	</div>
 
 	{#if src.mode === 'literal'}
-		<textarea
-			class="mono numbers"
-			bind:value={src.text}
-			rows={Math.min(8, Math.max(2, src.text.split('\n').length))}
-			spellcheck="false"
-			aria-label="Numbers for array a"
-			aria-describedby="source-help"
-		></textarea>
-		<p id="source-help" class="help">
-			Spaces or commas between values · new line = new row · blank line = new 2-D layer (3-D array).
-		</p>
+		<div class="entry">
+			<textarea
+				class="mono numbers"
+				bind:value={src.text}
+				rows={Math.min(8, Math.max(2, src.text.split('\n').length))}
+				spellcheck="false"
+				aria-label="Numbers for array a"
+				aria-describedby="source-help"
+			></textarea>
+			<div class="side">
+				<div class="presets" role="group" aria-label="Example numbers">
+					<span class="eyebrow">Try</span>
+					{#each LITERAL_PRESETS as p (p.label)}
+						<button
+							type="button"
+							class="chip"
+							aria-pressed={src.text === p.text}
+							title={p.text.replaceAll('\n', ' ⏎ ')}
+							onclick={() => (src.text = p.text)}>{p.label}</button
+						>
+					{/each}
+				</div>
+				<p id="source-help" class="help">
+					Spaces or commas between values · new line = new row · blank line = new 2-D layer (3-D array).
+				</p>
+			</div>
+		</div>
 	{:else}
 		<form class="expr" onsubmit={applyExpr}>
 			<span class="mono muted">a =</span>
@@ -105,8 +131,26 @@
 		font-size: 0.85rem;
 		color: var(--accent);
 	}
+	.entry {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: 0.4rem 1rem;
+	}
+	.side {
+		flex: 1 1 14rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		padding-top: 0.15rem;
+	}
+	.presets .eyebrow {
+		margin-right: 0.15rem;
+	}
 	.numbers {
-		width: min(100%, 34rem);
+		flex: 1 1 18rem;
+		max-width: 34rem;
+		min-width: min(100%, 14rem);
 		resize: vertical;
 		font-size: 1rem;
 		line-height: 1.45;
@@ -127,6 +171,7 @@
 	}
 	.presets {
 		display: flex;
+		align-items: center;
 		flex-wrap: wrap;
 		gap: 0.3rem;
 	}

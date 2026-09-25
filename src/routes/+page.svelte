@@ -32,6 +32,13 @@
 				<a class="btn primary big" href={chapterHref('ndarray')}><Icon name="book" size={16} /> Start chapter 01</a>
 				<a class="btn big" href={resolve('/lab') + '/'}><Icon name="flask" size={16} /> Open the lab</a>
 			</div>
+			<ol class="how" aria-label="How ArrayLab works">
+				<li><span class="step mono">1</span><span><strong>Type numbers</strong> — no Python needed to start.</span></li>
+				<li><span class="step mono">2</span><span><strong>See the ndarray</strong> — its grid, axes, shape and dtype.</span></li>
+				<li>
+					<span class="step mono">3</span><span><strong>Change something</strong> — an axis, an index, a shape — and watch NumPy's answer.</span>
+				</li>
+			</ol>
 		</div>
 
 		<div class="try" aria-label="Try it: create an array">
@@ -109,6 +116,37 @@
 	.big {
 		padding: 0.6rem 1.05rem;
 		font-size: 0.98rem;
+	}
+	.how {
+		list-style: none;
+		margin: 2rem 0 0;
+		padding: 1.1rem 0 0;
+		border-top: 1px solid var(--border);
+		display: flex;
+		flex-direction: column;
+		gap: 0.7rem;
+		max-width: 34rem;
+		color: var(--muted);
+	}
+	.how li {
+		display: flex;
+		gap: 0.7rem;
+		align-items: baseline;
+	}
+	.how strong {
+		color: var(--foreground);
+	}
+	.step {
+		flex: none;
+		width: 1.6rem;
+		height: 1.6rem;
+		display: inline-grid;
+		place-items: center;
+		border: 1.5px solid var(--accent);
+		border-radius: 50%;
+		color: var(--accent);
+		font-size: 0.8rem;
+		font-weight: 700;
 	}
 	.try {
 		background: var(--surface);

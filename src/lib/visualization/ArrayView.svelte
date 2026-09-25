@@ -19,25 +19,27 @@
 
 {#if a}
 	<div class="stack">
-		<ShapeView info={a} highlightAxis={hoverAxis} />
-		<div class="stage">
-			<ArrayGrid info={a} onhover={(f) => (hover = f)} decorate={(f) => (f === hover ? { state: 'selected' } : undefined)} />
+		<div class="main">
+			<ShapeView info={a} highlightAxis={hoverAxis} />
+			<div class="stage">
+				<ArrayGrid info={a} onhover={(f) => (hover = f)} decorate={(f) => (f === hover ? { state: 'selected' } : undefined)} />
+			</div>
+			<p class="hover-line mono" aria-live="polite">
+				{#if hoverIndex && a}
+					{formatIndex('a', hoverIndex)} = {valueAt(a, hover!)}
+					{#each hoverIndex as i, axis (axis)}
+						<span
+							class="chip"
+							role="presentation"
+							onmouseenter={() => (hoverAxis = axis)}
+							onmouseleave={() => (hoverAxis = null)}>axis {axis}: {i}</span
+						>
+					{/each}
+				{:else}
+					<span class="muted">Hover or focus a cell to see its index.</span>
+				{/if}
+			</p>
 		</div>
-		<p class="hover-line mono" aria-live="polite">
-			{#if hoverIndex && a}
-				{formatIndex('a', hoverIndex)} = {valueAt(a, hover!)}
-				{#each hoverIndex as i, axis (axis)}
-					<span
-						class="chip"
-						role="presentation"
-						onmouseenter={() => (hoverAxis = axis)}
-						onmouseleave={() => (hoverAxis = null)}>axis {axis}: {i}</span
-					>
-				{/each}
-			{:else}
-				<span class="muted">Hover or focus a cell to see its index.</span>
-			{/if}
-		</p>
 		<Explain title="Reading the array">
 			{#if a.ndim === 0}
 				<p>
@@ -71,10 +73,20 @@
 {/if}
 
 <style>
-	.stack {
+	.stack,
+	.main {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+	/* Wide screens: the explanation sits beside the array instead of below the fold. */
+	@container center (min-width: 820px) {
+		.stack {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(15rem, 24rem);
+			gap: 1.5rem;
+			align-items: start;
+		}
 	}
 	.stage {
 		overflow: auto;
