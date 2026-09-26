@@ -43,6 +43,11 @@ You don't need to write any code to get started.
 5. **Write your own code** in the editor when you're ready, then press **Run** (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> +
    <kbd>Enter</kbd>). Any arrays you create are visualized too.
 
+6. **Share what you see.** **Share** (next to the code) copies a link that opens the Lab in exactly this state: the
+   array, the tool and its settings, and your editor code. Handy for sending students a ready-made example. The state
+   lives in the link itself; nothing is uploaded. If a link contains code that is not a plain number, slice or label,
+   ArrayLab shows it and waits for **Run it**.
+
 ## Tools
 
 | Tool          | What you can explore                                                                  |

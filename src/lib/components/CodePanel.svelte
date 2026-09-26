@@ -4,6 +4,8 @@
 	import type { Lab } from '../lab/lab.svelte';
 	import type { RunResult } from '../runtime/protocol';
 	import { runtime } from '../runtime/executor.svelte';
+	import { base } from '$app/paths';
+	import { encodeShare } from '../lab/share';
 
 	/** Bottom panel: the exact code each tool ran, a free editor, and Python's output. */
 	let { lab }: { lab: Lab } = $props();
@@ -35,6 +37,20 @@
 	function openInEditor() {
 		lab.scratchCode = toolCode;
 		tab = 'editor';
+	}
+
+	let shared = $state<'idle' | 'copied' | 'failed'>('idle');
+	let shareUrl = $state('');
+	/** Copies a link that opens the Lab in this exact state (tool, numbers, settings, editor code). */
+	async function share() {
+		shareUrl = `${location.origin}${base}/lab/#s=${encodeShare($state.snapshot(lab.settings), lab.scratchCode)}`;
+		try {
+			await navigator.clipboard.writeText(shareUrl);
+			shared = 'copied';
+			setTimeout(() => (shared = 'idle'), 1800);
+		} catch {
+			shared = 'failed';
+		}
 	}
 
 	async function copy() {
@@ -75,6 +91,15 @@
 					<Icon name="play" size={14} /> Run
 				</button>
 			{/if}
+			<button
+				class="btn ghost small"
+				type="button"
+				onclick={share}
+				title="Copy a link that opens the Lab with this array, tool and code"
+			>
+				<Icon name={shared === 'copied' ? 'check' : 'link'} size={14} />
+				{shared === 'copied' ? 'Link copied' : 'Share'}
+			</button>
 			<button class="btn ghost small" type="button" onclick={copy} aria-label="Copy code">
 				<Icon name={copied ? 'check' : 'copy'} size={14} />
 			</button>
@@ -91,6 +116,18 @@
 			</button>
 		</div>
 	</div>
+
+	{#if shared === 'failed'}
+		<div class="share-fallback">
+			<label>
+				<span class="muted">Copy this link:</span>
+				<input readonly value={shareUrl} onfocus={(e) => e.currentTarget.select()} />
+			</label>
+			<button class="btn ghost small" type="button" onclick={() => (shared = 'idle')} aria-label="Close">
+				<Icon name="x" size={14} />
+			</button>
+		</div>
+	{/if}
 
 	{#if !collapsed}
 		<div class="body">
@@ -146,6 +183,24 @@
 		padding: 0.25rem 0.6rem;
 		border-bottom: 1px solid var(--border);
 		flex-wrap: wrap;
+	}
+	.share-fallback {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.3rem 0.6rem;
+		border-bottom: 1px solid var(--border);
+		font-size: 0.82rem;
+	}
+	.share-fallback label {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.share-fallback input {
+		flex: 1;
+		font-size: 0.8rem;
 	}
 	.collapsed .bar {
 		border-bottom: none;

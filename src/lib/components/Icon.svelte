@@ -23,6 +23,7 @@
 		arrowRight: 'M5 12h14M13 6l6 6-6 6',
 		pause: 'M7 5h3v14H7zM14 5h3v14h-3z',
 		stepForward: 'M5 5v14l10-7L5 5ZM19 5v14',
+		link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
 		timer: 'M10 2h4M12 14l3-3M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z'
 	} as const;
 	export type IconName = keyof typeof PATHS;

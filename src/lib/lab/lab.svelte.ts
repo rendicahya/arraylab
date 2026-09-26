@@ -4,19 +4,10 @@ import type { ArrayInfo, FrameInfo } from '../array/types';
 import { isArrayInfo, isFrameInfo } from '../array/types';
 import { parseLiteral, type Nested } from '../array/literal';
 import { buildSpec, type RunSpec } from './codegen';
-import { DEFAULT_SETTINGS, type LabPatch, type LabSettings, type ToolId } from './types';
+import { DEFAULT_SCRATCH, DEFAULT_SETTINGS, type LabPatch, type LabSettings, type ToolId } from './types';
 
 const RUN_DEBOUNCE_MS = 120;
 let labCount = 0;
-
-const DEFAULT_SCRATCH = `import numpy as np
-
-a = np.array([
-    [1, 2, 3],
-    [4, 5, 6]
-])
-
-a.shape`;
 
 /** Best-effort label for the last expression, e.g. `a.T` or `np.sum(a, axis=0)`. */
 function guessName(code: string): string {
@@ -42,6 +33,11 @@ export class Lab {
 	running = $state(false);
 	/** Failure of the runtime itself (download blocked, worker restarted…). */
 	runtimeError = $state<string | null>(null);
+	/**
+	 * Expressions from a shared link that wait for the learner's OK before
+	 * anything runs (null: nothing to confirm). Links only fill in the lab.
+	 */
+	awaitingConfirm = $state<string[] | null>(null);
 
 	#seq = 0;
 
@@ -75,6 +71,15 @@ export class Lab {
 			this.scratchResult = null;
 			this.scratchView = null;
 		}
+	}
+
+	/** Replace the whole state with one from a share link. */
+	loadShared(settings: LabSettings, code: string | undefined, unsafe: string[]) {
+		this.awaitingConfirm = unsafe.length ? unsafe : null;
+		this.settings = settings;
+		this.result = null;
+		this.ranSpec = null;
+		if (code !== undefined) this.apply({ code });
 	}
 
 	/** A described target from the latest result, e.g. `lab.target('a')`. */
@@ -189,7 +194,7 @@ export class Lab {
 		$effect(() => {
 			const spec = this.spec;
 			void runtime.generation; // re-run after a runtime restart
-			if (spec.inputError || spec.skip) return;
+			if (spec.inputError || spec.skip || this.awaitingConfirm) return;
 			const timer = setTimeout(() => void this.#execute(spec), RUN_DEBOUNCE_MS);
 			return () => clearTimeout(timer);
 		});

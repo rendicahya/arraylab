@@ -16,7 +16,21 @@
 	);
 </script>
 
-{#if lab.spec.inputError}
+{#if lab.awaitingConfirm}
+	<div class="notice confirm" role="alert">
+		<Icon name="info" size={16} />
+		<div class="confirm-body">
+			<span>This shared link contains code that runs in this lab:</span>
+			<ul>
+				{#each lab.awaitingConfirm as expr (expr)}<li><code>{expr}</code></li>{/each}
+			</ul>
+			<span class="muted">It runs only in your browser. Check it, then run it.</span>
+		</div>
+		<button class="btn primary" type="button" onclick={() => (lab.awaitingConfirm = null)}>
+			<Icon name="play" size={14} /> Run it
+		</button>
+	</div>
+{:else if lab.spec.inputError}
 	<div class="notice warning" role="status">
 		<Icon name="info" size={16} />
 		<span>{lab.spec.inputError}</span>
@@ -74,6 +88,23 @@
 	}
 	.notice :global(svg) {
 		flex: none;
+	}
+	.confirm {
+		align-items: flex-start;
+		border-color: var(--accent);
+		background: var(--accent-soft);
+	}
+	.confirm-body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+	.confirm-body ul {
+		margin: 0;
+		padding-left: 1.1rem;
+		overflow-wrap: anywhere;
 	}
 	.warning {
 		border-color: var(--warning);

@@ -161,6 +161,16 @@ export const DEFAULT_SETTINGS: LabSettings = {
 	}
 };
 
+/** Starting code of the editor ("Your code"). */
+export const DEFAULT_SCRATCH = `import numpy as np
+
+a = np.array([
+    [1, 2, 3],
+    [4, 5, 6]
+])
+
+a.shape`;
+
 /** Tools are grouped by library in the tab row. */
 export type ToolGroup = 'numpy' | 'torch' | 'pandas' | 'code';
 
