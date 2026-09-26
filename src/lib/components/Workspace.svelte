@@ -32,6 +32,35 @@
 
 	const tool = $derived(lab.settings.tool);
 
+	/** The tab row is one line that scrolls when narrow: keep the active tab in view. */
+	let tabRow = $state<HTMLElement>();
+	let tabRowWidth = $state(0);
+	/** Hidden tabs on either side: shown as a fade at that edge. */
+	let hiddenLeft = $state(false);
+	let hiddenRight = $state(false);
+	function measureTabs() {
+		const row = tabRow;
+		if (!row) return;
+		hiddenLeft = row.scrollLeft > 1;
+		hiddenRight = row.scrollLeft + row.clientWidth < row.scrollWidth - 1;
+	}
+	$effect(() => {
+		void tabRowWidth;
+		measureTabs();
+	});
+	$effect(() => {
+		void tool;
+		const row = tabRow;
+		const tab = row?.querySelector<HTMLElement>('[aria-selected="true"]');
+		if (!row || !tab) return;
+		const left = tab.offsetLeft - row.offsetLeft;
+		const clear = 40; // keep it out of the edge fade
+		if (left < row.scrollLeft + clear) row.scrollLeft = left - clear;
+		else if (left + tab.offsetWidth > row.scrollLeft + row.clientWidth - clear) {
+			row.scrollLeft = left + tab.offsetWidth - row.clientWidth + clear;
+		}
+	});
+
 	const showSource = $derived(
 		tool !== 'code' && tool !== 'autograd' && (tool !== 'pandas' || pandasUsesSource(lab.settings.pandas.view))
 	);
@@ -88,8 +117,18 @@
 		{#if showSource}
 			<div class="source-wrap"><SourceInput {lab} /></div>
 		{/if}
-		<div class="tool-tabs" role="tablist" aria-label="Tools">
-			{#each TOOLS as t (t.id)}
+		<div
+			class="tool-tabs"
+			class:fade-left={hiddenLeft}
+			class:fade-right={hiddenRight}
+			role="tablist"
+			aria-label="Tools"
+			bind:this={tabRow}
+			bind:clientWidth={tabRowWidth}
+			onscroll={measureTabs}
+		>
+			{#each TOOLS as t, i (t.id)}
+				{#if i > 0 && TOOLS[i - 1].group !== t.group}<span class="sep" aria-hidden="true"></span>{/if}
 				<button
 					type="button"
 					role="tab"
@@ -150,7 +189,7 @@
 		--code-h: clamp(180px, 28dvh, 280px);
 	}
 	.workspace.has-left {
-		grid-template-columns: 310px minmax(0, 1fr) 270px;
+		grid-template-columns: clamp(270px, 21vw, 320px) minmax(0, 1fr) 270px;
 		grid-template-areas:
 			'left center right'
 			'bottom bottom bottom';
@@ -192,18 +231,41 @@
 		padding-bottom: 0.7rem;
 		border-bottom: 1px dashed var(--border);
 	}
+	/* One line: wrapping to a second row pushes the visualization down on laptops. */
 	.tool-tabs {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
+		align-items: center;
+		gap: 0.18rem;
+		flex: none;
+		overflow-x: auto;
+		scrollbar-width: thin;
+		padding-bottom: 2px;
+	}
+	.tool-tabs.fade-right {
+		mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+	}
+	.tool-tabs.fade-left {
+		mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+	}
+	.tool-tabs.fade-left.fade-right {
+		mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+	}
+	.tool-tabs .sep {
+		flex: none;
+		width: 1px;
+		height: 1.1rem;
+		margin: 0 0.15rem;
+		background: var(--border-strong);
 	}
 	.tool-tabs button {
+		flex: none;
+		white-space: nowrap;
 		border: 1px solid var(--border);
 		background: var(--surface);
 		border-radius: 999px;
-		padding: 0.25rem 0.68rem;
+		padding: 0.2rem 0.5rem;
 		cursor: pointer;
-		font-size: 0.86rem;
+		font-size: 0.82rem;
 		color: var(--muted);
 		font-weight: 500;
 	}
@@ -237,6 +299,16 @@
 			--cell-font: 1.18rem;
 			--cell-min: 3.3rem;
 			--cell-h: 2.9rem;
+		}
+	}
+	/* Short laptop screens (e.g. 1366 × 768): more height for the visualization. */
+	@media (max-height: 820px) {
+		.workspace {
+			--code-h: clamp(160px, 25dvh, 240px);
+		}
+		.center {
+			padding-top: 0.6rem;
+			gap: 0.6rem;
 		}
 	}
 	:global(:root[data-fullscreen='true']) .workspace {

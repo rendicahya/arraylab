@@ -146,16 +146,19 @@ export const DEFAULT_SETTINGS: LabSettings = {
 	}
 };
 
-export const TOOLS: { id: ToolId; label: string; description: string }[] = [
-	{ id: 'array', label: 'Array', description: 'See the array, its shape and its axes' },
-	{ id: 'axis', label: 'Axis', description: 'Reduce along an axis: sum, mean, max, …' },
-	{ id: 'index', label: 'Index', description: 'Select elements, rows, columns and slices' },
-	{ id: 'reshape', label: 'Reshape', description: 'reshape, transpose, flatten, ravel' },
-	{ id: 'broadcast', label: 'Broadcast', description: 'Combine arrays of different shapes' },
-	{ id: 'vectorize', label: 'Vectorize', description: 'Loops vs whole-array operations' },
-	{ id: 'dtype', label: 'dtype', description: 'Convert between data types' },
-	{ id: 'torch', label: '→ PyTorch', description: 'The same array as a PyTorch tensor (PyTorch code is shown, not run)' },
-	{ id: 'autograd', label: 'Autograd', description: 'A computational graph: forward values and backward gradients' },
-	{ id: 'pandas', label: 'pandas', description: 'The array as a labeled pandas DataFrame' },
-	{ id: 'code', label: 'Your code', description: 'Visualize variables from the code editor' }
+/** Tools are grouped by library in the tab row. */
+export type ToolGroup = 'numpy' | 'torch' | 'pandas' | 'code';
+
+export const TOOLS: { id: ToolId; label: string; description: string; group: ToolGroup }[] = [
+	{ id: 'array', label: 'Array', description: 'See the array, its shape and its axes', group: 'numpy' },
+	{ id: 'axis', label: 'Axis', description: 'Reduce along an axis: sum, mean, max, …', group: 'numpy' },
+	{ id: 'index', label: 'Index', description: 'Select elements, rows, columns and slices', group: 'numpy' },
+	{ id: 'reshape', label: 'Reshape', description: 'reshape, transpose, flatten, ravel', group: 'numpy' },
+	{ id: 'broadcast', label: 'Broadcast', description: 'Combine arrays of different shapes', group: 'numpy' },
+	{ id: 'vectorize', label: 'Vectorize', description: 'Loops vs whole-array operations', group: 'numpy' },
+	{ id: 'dtype', label: 'dtype', description: 'Convert between data types', group: 'numpy' },
+	{ id: 'torch', label: '→ PyTorch', description: 'The same array as a PyTorch tensor (PyTorch code is shown, not run)', group: 'torch' },
+	{ id: 'autograd', label: 'Autograd', description: 'A computational graph: forward values and backward gradients', group: 'torch' },
+	{ id: 'pandas', label: 'pandas', description: 'The array as a labeled pandas DataFrame', group: 'pandas' },
+	{ id: 'code', label: 'Your code', description: 'Visualize variables from the code editor', group: 'code' }
 ];

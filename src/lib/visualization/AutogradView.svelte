@@ -43,21 +43,51 @@
 	// ---- layout (SVG user units) ----
 	const W = 142;
 	const H = 66;
-	const POS: Record<NodeId, { x: number; y: number }> = {
-		x: { x: 8, y: 10 },
-		w: { x: 8, y: 100 },
-		b: { x: 8, y: 190 },
-		y: { x: 8, y: 280 },
-		m: { x: 206, y: 55 },
-		pred: { x: 404, y: 120 },
-		diff: { x: 602, y: 190 },
-		loss: { x: 818, y: 190 }
+	type Layout = { width: number; height: number; pos: Record<NodeId, { x: number; y: number }> };
+	/** Left to right: leaves, then each operation. */
+	const WIDE: Layout = {
+		width: 968,
+		height: 372,
+		pos: {
+			x: { x: 8, y: 10 },
+			w: { x: 8, y: 100 },
+			b: { x: 8, y: 190 },
+			y: { x: 8, y: 280 },
+			m: { x: 206, y: 55 },
+			pred: { x: 404, y: 120 },
+			diff: { x: 602, y: 190 },
+			loss: { x: 818, y: 190 }
+		}
 	};
+	/** Narrow screens: operations go down a column, each leaf joins from the left. */
+	const TALL: Layout = {
+		width: 450,
+		height: 523,
+		pos: {
+			x: { x: 8, y: 0 },
+			w: { x: 8, y: 90 },
+			b: { x: 8, y: 190 },
+			y: { x: 8, y: 320 },
+			m: { x: 210, y: 45 },
+			pred: { x: 210, y: 175 },
+			diff: { x: 210, y: 305 },
+			loss: { x: 210, y: 435 }
+		}
+	};
+	let graphWidth = $state(0);
+	const layout = $derived(graphWidth && graphWidth < 620 ? TALL : WIDE);
+	const POS = $derived(layout.pos);
 	const EDGES: [NodeId, NodeId][] = OP_NODES.flatMap((n) => n.inputs.map((i) => [i, n.id] as [NodeId, NodeId]));
+
+	/** An edge goes sideways when the target is to the right, otherwise down its column. */
+	const sideways = (from: NodeId, to: NodeId) => POS[to].x >= POS[from].x + W;
+	/** Vertical edges run near the right edge of the column, clear of the centered tags. */
+	const DOWN_X = W - 14;
 
 	function edgePath(from: NodeId, to: NodeId): string {
 		const a = POS[from];
 		const b = POS[to];
+		if (!sideways(from, to)) return `M ${a.x + DOWN_X} ${a.y + H} L ${b.x + DOWN_X} ${b.y}`;
 		const x1 = a.x + W;
 		const y1 = a.y + H / 2;
 		const x2 = b.x;
@@ -65,10 +95,11 @@
 		const mx = (x1 + x2) / 2;
 		return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
 	}
-	function mid(from: NodeId, to: NodeId) {
+	function edgeLabel(from: NodeId, to: NodeId) {
 		const a = POS[from];
 		const b = POS[to];
-		return { x: (a.x + W + b.x) / 2, y: (a.y + b.y + H) / 2 };
+		if (!sideways(from, to)) return { x: a.x + DOWN_X + 8, y: (a.y + H + b.y) / 2 + 4, anchor: 'start' };
+		return { x: (a.x + W + b.x) / 2, y: (a.y + b.y + H) / 2 - 6, anchor: 'middle' };
 	}
 
 	// ---- animation ----
@@ -151,9 +182,10 @@
 
 <RunStatus {lab} />
 
-<div class="graph-wrap">
+<div class="graph-wrap" bind:clientWidth={graphWidth}>
 	<svg
-		viewBox="0 0 968 372"
+		class:tall={layout === TALL}
+		viewBox="0 0 {layout.width} {layout.height}"
 		role="img"
 		aria-label="Computational graph: m = w times x, pred = m plus b, diff = pred minus y, loss = diff squared. {s.phase === 'backward'
 			? 'Gradients flow from loss back to the leaves.'
@@ -180,8 +212,8 @@
 			{#if back && live}
 				{@const e = steps.find((x) => x.from === to && x.to === from)}
 				{#if e}
-					{@const p = mid(from, to)}
-					<text x={p.x} y={p.y - 6} class="edge-label" class:active={isActiveEdge(from, to)} text-anchor="middle">× {e.local}</text>
+					{@const p = edgeLabel(from, to)}
+					<text x={p.x} y={p.y} class="edge-label" class:active={isActiveEdge(from, to)} text-anchor={p.anchor}>× {e.local}</text>
 				{/if}
 			{/if}
 		{/each}
@@ -354,6 +386,10 @@
 		max-width: 62rem;
 		height: auto;
 		display: block;
+	}
+	svg.tall {
+		min-width: 0;
+		max-width: 30rem;
 	}
 	.edge {
 		fill: none;
