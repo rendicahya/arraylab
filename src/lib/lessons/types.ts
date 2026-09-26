@@ -20,7 +20,7 @@ export type Chapter = {
 	title: string;
 	summary: string;
 	topics: string[];
-	phase: 'numpy' | 'torch';
+	phase: 'numpy' | 'torch' | 'pandas';
 	steps: Step[];
 };
 

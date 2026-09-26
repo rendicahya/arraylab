@@ -35,6 +35,11 @@
 		<span class="spinner" aria-hidden="true"></span>
 		<span>{runtime.message || 'Starting Python…'} <span class="muted">(first visit downloads ≈ 15 MB, then it is cached)</span></span>
 	</div>
+{:else if !result && lab.running && runtime.message}
+	<div class="notice" role="status" aria-live="polite">
+		<span class="spinner" aria-hidden="true"></span>
+		<span>{runtime.message} <span class="muted">(downloaded once, then cached)</span></span>
+	</div>
 {:else if lab.runtimeError}
 	<div class="notice error" role="alert">
 		<Icon name="alert" size={16} />

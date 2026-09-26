@@ -8,6 +8,7 @@ import { literalToCode, parseLiteral } from '../array/literal';
 import type { LabSettings, ReduceFn, ToolId, VectorOpId } from './types';
 import { torchOp } from '../torch/translate';
 import { AUTOGRAD_NAMES, AUTOGRAD_TARGETS, autogradCode, autogradInputError } from '../torch/autograd';
+import { PANDAS_HELPERS, PANDAS_NAMES, pandasCode } from '../pandas/codegen';
 
 export type RunSpec = {
 	tool: ToolId;
@@ -119,6 +120,7 @@ export function buildSpec(settings: LabSettings): RunSpec {
 		if (inputError) return { tool, code, targets: [], clear: AUTOGRAD_NAMES, inputError };
 		return { tool, code, extra, targets: AUTOGRAD_TARGETS, clear: AUTOGRAD_NAMES };
 	}
+	if (tool === 'pandas') return pandasSpec(settings);
 	const src = sourceCode(settings.source);
 	if (src.error) return { tool, code: '', targets: [], clear, inputError: src.error };
 	const lines = [src.code];
@@ -229,6 +231,25 @@ export function buildSpec(settings: LabSettings): RunSpec {
 	const code = HEADER + lines.join('\n');
 	if (inputError) return { tool, code, targets: [], clear, inputError };
 	return { tool, code, extra, targets, clear, inputHint: src.hint };
+}
+
+/** Views of the pandas tool that do not start from the source array `a`. */
+export function pandasUsesSource(view: LabSettings['pandas']['view']): boolean {
+	return view !== 'dtypes' && view !== 'align';
+}
+
+function pandasSpec(settings: LabSettings): RunSpec {
+	const tool = 'pandas';
+	const clear = ['a', ...PANDAS_NAMES, ...PANDAS_HELPERS];
+	const header = 'import numpy as np\nimport pandas as pd\n\n';
+	const usesSource = pandasUsesSource(settings.pandas.view);
+	const src: { code: string; error?: string; hint?: string } = usesSource ? sourceCode(settings.source) : { code: '' };
+	if (src.error) return { tool, code: '', targets: [], clear, inputError: src.error };
+	const literal = usesSource && settings.source.mode === 'literal' ? parseLiteral(settings.source.text) : null;
+	const p = pandasCode(settings.pandas, src.code, literal?.ok ? literal.shape : null);
+	const code = header + p.lines.join('\n');
+	if (p.inputError) return { tool, code, targets: [], clear, inputError: p.inputError };
+	return { tool, code, extra: p.extra, targets: p.targets, clear, inputHint: src.hint };
 }
 
 /** Benchmark code for the vectorization tool (runs in its own namespace). */

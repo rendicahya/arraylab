@@ -160,6 +160,55 @@ export function explainError(err: PythonError): Explanation {
 		};
 	}
 
+	// ---- pandas ----
+	m = message.match(/Shape of passed values is \((\d+), (\d+)\), indices imply \((\d+), (\d+)\)/);
+	if (m) {
+		return {
+			title: 'The number of labels does not match the array.',
+			details: [
+				`The array has ${m[1]} rows and ${m[2]} columns, but the labels describe ${m[3]} rows and ${m[4]} columns.`,
+				'A DataFrame needs exactly one row label per row and one column label per column.'
+			],
+			hint: 'Add or remove labels — or leave them empty to get the default positions 0, 1, 2 …'
+		};
+	}
+
+	m = message.match(/Must pass 2-d input\. shape=(\([^)]*\))/);
+	if (m) {
+		return {
+			title: `A DataFrame cannot hold a ${parseTuple(m[1]).length}-D array.`,
+			details: [`The array has shape ${m[1]}. A DataFrame is a 2-D table: pass a 1-D array (one column) or a 2-D array.`],
+			hint: 'Reshape the array to 2-D first, e.g. a.reshape(-1, a.shape[-1]).'
+		};
+	}
+
+	if (type === 'KeyError') {
+		return {
+			title: `There is no key or label ${message}${at}.`,
+			details: [
+				'A dict raises KeyError for a missing key. pandas raises it when .loc[…] or df[…] cannot find a label: the label must exist exactly (text labels are case-sensitive, and 0 is not the same as \'0\').',
+				'To select rows or columns by position (0, 1, 2 …) use .iloc[…] instead.'
+			]
+		};
+	}
+
+	if (/single positional indexer is out-of-bounds/.test(message)) {
+		return {
+			title: 'That position does not exist.',
+			details: ['.iloc counts positions from 0, so the last row is at position (number of rows − 1).']
+		};
+	}
+
+	if (/iLocation based boolean indexing cannot use an indexable as a mask/.test(message)) {
+		return {
+			title: '.iloc does not take a boolean Series.',
+			details: [
+				'.iloc works with positions only, and a Series carries labels.',
+				'Use .loc with the mask (df.loc[df[\'A\'] > 2]), or turn it into a plain array: df.iloc[(df[\'A\'] > 2).to_numpy()].'
+			]
+		};
+	}
+
 	if (type === 'ModuleNotFoundError' && /torch/.test(message)) {
 		return {
 			title: 'PyTorch is not available in this browser runtime.',
@@ -173,7 +222,7 @@ export function explainError(err: PythonError): Explanation {
 	if (type === 'ModuleNotFoundError') {
 		return {
 			title: 'That module is not available here.',
-			details: ['This lab includes Python and NumPy. Other packages are not loaded.']
+			details: ['This lab runs Python with NumPy and pandas (plus the other packages Pyodide ships). This one is not available.']
 		};
 	}
 

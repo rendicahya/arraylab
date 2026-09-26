@@ -1,7 +1,7 @@
 """ArrayLab execution & extraction layer (runs inside Pyodide).
 
-Executes Python snippets in isolated namespaces and converts NumPy objects
-into a JSON-friendly, UI-agnostic description. Nothing here knows how the
+Executes Python snippets in isolated namespaces and converts NumPy (and pandas)
+objects into a JSON-friendly, UI-agnostic description. Nothing here knows how the
 arrays are drawn; the Svelte visualization layer only sees the JSON.
 """
 
@@ -17,6 +17,9 @@ import numpy as np
 # outer axes (blocks) are kept short because each one repeats a whole grid.
 PREVIEW_INNER = 20
 PREVIEW_OUTER = 4
+# DataFrame previews: rows × columns.
+PREVIEW_ROWS = 20
+PREVIEW_COLS = 12
 MAX_TEXT = 4000
 
 _namespaces = {}
@@ -106,8 +109,69 @@ def _type_name(value):
     return t.__name__ if mod in ("builtins", "__main__") else f"{mod}.{t.__name__}"
 
 
+def _short(text):
+    return text if len(text) <= 12 else text[:11] + "…"
+
+
+def _format_cell(v):
+    """One DataFrame cell, written the way pandas prints it (NaN, None, <NA>)."""
+    if v is None:
+        return "None"
+    pd = sys.modules["pandas"]
+    if v is pd.NA:
+        return "<NA>"
+    if v is pd.NaT:
+        return "NaT"
+    if isinstance(v, (float, np.floating)) and v != v:
+        return "NaN"
+    if isinstance(v, (np.generic, bool, int, float, complex)) and not isinstance(v, (str, np.str_)):
+        kind = np.asarray(v).dtype.kind
+        if kind in "biufc":
+            return _format_scalar(v, kind)
+    return _short(str(v))
+
+
+def _is_pandas(value):
+    pd = sys.modules.get("pandas")
+    return pd is not None and isinstance(value, (pd.DataFrame, pd.Series))
+
+
+def describe_frame(name, obj):
+    """Describe a pandas DataFrame or Series (a Series as a single column)."""
+    pd = sys.modules["pandas"]
+    series = isinstance(obj, pd.Series)
+    df = obj.to_frame(name="" if obj.name is None else obj.name) if series else obj
+    rows = min(len(df), PREVIEW_ROWS)
+    cols = min(df.shape[1], PREVIEW_COLS)
+    part = df.iloc[:rows, :cols]
+    values = [_format_cell(part.iat[i, j]) for i in range(rows) for j in range(cols)]
+    usage = obj.memory_usage(index=False)
+    return {
+        "kind": "series" if series else "frame",
+        "name": name,
+        "backend": "pandas",
+        "shape": [int(n) for n in obj.shape],
+        "ndim": int(obj.ndim),
+        "size": int(obj.size),
+        "index": [_short(str(x)) for x in part.index],
+        "indexKind": df.index.dtype.kind,
+        "indexType": type(df.index).__name__,
+        "columns": [_short(str(x)) for x in part.columns],
+        "columnsKind": df.columns.dtype.kind,
+        "columnsType": type(df.columns).__name__,
+        "dtypes": [str(t) for t in part.dtypes],
+        "values": values,
+        "previewShape": [rows, cols],
+        "truncated": bool(rows < len(df) or cols < df.shape[1]),
+        "nbytes": int(usage if series else usage.sum()),
+        "pythonType": "pandas.Series" if series else "pandas.DataFrame",
+    }
+
+
 def describe_value(name, value, with_values=True):
-    """Describe any Python value; arrays and NumPy/Python numbers get full detail."""
+    """Describe any Python value; arrays, DataFrames and numbers get full detail."""
+    if _is_pandas(value):
+        return describe_frame(name, value)
     if isinstance(value, np.ndarray):
         return describe_array(name, value, with_values)
     if isinstance(value, (np.generic, bool, int, float, complex)) and not isinstance(value, np.str_):
@@ -163,12 +227,16 @@ def _exec(code, ns):
 
 
 def _list_arrays(ns):
+    """ndarray variables, plus DataFrames/Series (summarized for the variable list)."""
     out = []
     for key, value in ns.items():
         if key.startswith("_") or key in ("np", "numpy"):
             continue
         if isinstance(value, np.ndarray):
             out.append(describe_array(key, value, with_values=False))
+        elif _is_pandas(value):
+            info = describe_frame(key, value)
+            out.append(info)
     return out
 
 

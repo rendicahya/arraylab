@@ -56,7 +56,8 @@ You don't need to write any code to get started.
 | **dtype**     | Converting between data types and what happens to the values and the memory           |
 | **→ PyTorch** | The same array as a PyTorch tensor: properties, conversion, operations, creation, device |
 | **Autograd**  | A small computational graph: forward values, `grad_fn`, and gradients via the chain rule |
-| **Your code** | Free-form NumPy code, with every array you create visualized                          |
+| **pandas**    | The array as a labeled DataFrame: dtype per column, `axis`, `loc` / `iloc`, label alignment |
+| **Your code** | Free-form NumPy (or pandas) code, with every array and DataFrame you create visualized   |
 
 ## Chapters
 
@@ -72,6 +73,7 @@ You don't need to write any code to get started.
 | 08  | NumPy → PyTorch        | ndarray vs Tensor, `from_numpy` / `.numpy()`, what's the same and what differs |
 | 09  | PyTorch Tensor         | Creating tensors, `torch.Size`, dtype, `numel()` and `device`                  |
 | 10  | Autograd               | `requires_grad`, the computational graph, `backward()` and gradient descent     |
+| 11  | NumPy → pandas         | A DataFrame is an array with labels: dtype per column, axis, `loc` vs `iloc`, alignment |
 
 ## Good to know
 
@@ -92,6 +94,8 @@ You don't need to write any code to get started.
   side for real and show the matching PyTorch code next to it, clearly marked "not run here". Every PyTorch result they
   state (dtypes, error messages, `grad_fn` names) was recorded with real PyTorch. To run the PyTorch code yourself, open
   the [companion notebook in Google Colab](https://colab.research.google.com/github/rendicahya/arraylab/blob/main/notebooks/pytorch.ipynb).
+- **pandas runs for real.** Chapter 11 uses the real pandas 3 that ships with Pyodide. It is downloaded (≈ 5 MB)
+  only the first time you use pandas — in the pandas tool or with `import pandas` in your own code.
 - **Browser support:** use an up-to-date browser. ArrayLab works on phones, but a laptop, desktop or tablet is
   more comfortable.
 
@@ -124,6 +128,7 @@ src/lib/
   lab/            Lab state, code generation for each tool, step player
   visualization/  ArrayGrid, ShapeView, AxisView, IndexView, ReshapeView, BroadcastView, VectorizeView, DtypeView, …
   torch/          NumPy → PyTorch translation, recorded PyTorch reference, autograd graph
+  pandas/         code generation and input parsing for the pandas tool (pandas itself runs in Pyodide)
   lessons/        chapter content (data only)
   components/     shell, inspector, code editor, lesson panel, theme & fullscreen toggles
 src/routes/       /, /lab/, /learn/[slug]/ (all prerendered)

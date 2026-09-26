@@ -65,6 +65,7 @@
 							<span class="muted">{c.summary}</span>
 						</span>
 						{#if c.phase === 'torch'}<span class="torch-tag" title="PyTorch code is shown next to live NumPy; run it in Colab">PyTorch</span>{/if}
+						{#if c.phase === 'pandas'}<span class="torch-tag" title="Real pandas, running in your browser">pandas</span>{/if}
 					</a>
 				</li>
 			{/each}

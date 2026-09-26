@@ -114,6 +114,8 @@ class PythonRuntime {
 	}
 
 	#settle(id: number) {
+		// A package download reported during a run is over once the run settles.
+		if (this.status === 'ready') this.message = '';
 		const p = this.#pending.get(id);
 		this.#pending.delete(id);
 		this.inFlight = Math.max(0, this.inFlight - 1);

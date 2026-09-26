@@ -8,6 +8,7 @@ export type ToolId =
 	| 'dtype'
 	| 'torch'
 	| 'autograd'
+	| 'pandas'
 	| 'code';
 
 export type SourceState = {
@@ -49,6 +50,34 @@ export type AutogradState = {
 	lr: number;
 };
 
+/** What the pandas tool shows. */
+export type PandasView = 'frame' | 'dtypes' | 'axis' | 'select' | 'align';
+/** Column of the example table that gets a missing value (dtypes view). */
+export type PandasMissing = 'none' | 'name' | 'age' | 'score' | 'passed';
+export type PandasReduce = 'sum' | 'mean' | 'max' | 'min';
+/** `df[…]`, `df.loc[…]` or `df.iloc[…]`. */
+export type PandasAccessor = '' | 'loc' | 'iloc';
+export type PandasOp = '+' | '-' | '*';
+export type PandasState = {
+	view: PandasView;
+	/** Row labels typed as "r0 r1" or "10 20"; empty = default positions (RangeIndex). */
+	index: string;
+	/** Column labels, e.g. "A B C"; empty = default positions. */
+	columns: string;
+	missing: PandasMissing;
+	fn: PandasReduce;
+	axis: 0 | 1;
+	accessor: PandasAccessor;
+	/** What goes inside the brackets, e.g. `'r0', 'B'`. */
+	select: string;
+	/** Two Series typed as "a:1 b:2 c:3". */
+	left: string;
+	right: string;
+	op: PandasOp;
+	/** Use s1.add(s2, fill_value=0) instead of s1 + s2. */
+	fill: boolean;
+};
+
 export type LabSettings = {
 	tool: ToolId;
 	source: SourceState;
@@ -60,6 +89,7 @@ export type LabSettings = {
 	dtype: DtypeState;
 	torch: TorchState;
 	autograd: AutogradState;
+	pandas: PandasState;
 };
 
 /** Partial update applied by lesson steps and "try this" actions. */
@@ -79,6 +109,7 @@ export type LabPatch = {
 		phase?: AutogradState['phase'];
 		lr?: number;
 	};
+	pandas?: Partial<PandasState>;
 	/** Code placed in the editor (the learner still runs it explicitly). */
 	code?: string;
 };
@@ -98,6 +129,20 @@ export const DEFAULT_SETTINGS: LabSettings = {
 		requiresGrad: { x: false, w: true, b: true, y: false },
 		phase: 'forward',
 		lr: 0.05
+	},
+	pandas: {
+		view: 'frame',
+		index: 'r0 r1',
+		columns: 'A B C',
+		missing: 'none',
+		fn: 'sum',
+		axis: 0,
+		accessor: 'loc',
+		select: "'r0', 'B'",
+		left: 'a:1 b:2 c:3',
+		right: 'b:10 c:20 d:30',
+		op: '+',
+		fill: false
 	}
 };
 
@@ -111,5 +156,6 @@ export const TOOLS: { id: ToolId; label: string; description: string }[] = [
 	{ id: 'dtype', label: 'dtype', description: 'Convert between data types' },
 	{ id: 'torch', label: '→ PyTorch', description: 'The same array as a PyTorch tensor (PyTorch code is shown, not run)' },
 	{ id: 'autograd', label: 'Autograd', description: 'A computational graph: forward values and backward gradients' },
+	{ id: 'pandas', label: 'pandas', description: 'The array as a labeled pandas DataFrame' },
 	{ id: 'code', label: 'Your code', description: 'Visualize variables from the code editor' }
 ];

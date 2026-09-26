@@ -1,4 +1,4 @@
-import type { ArrayInfo, ValueInfo } from '../array/types';
+import type { ArrayInfo, FrameInfo, ValueInfo } from '../array/types';
 
 /** Messages exchanged between the UI thread and the Pyodide worker. */
 export type RunRequest = {
@@ -12,7 +12,7 @@ export type RunRequest = {
 	clear?: string[];
 	/** Variables to describe in full (with preview values) after execution. */
 	targets?: string[];
-	/** Also return a summary of every ndarray variable in the namespace. */
+	/** Also return a summary of every ndarray / DataFrame / Series variable in the namespace. */
 	listVariables?: boolean;
 };
 
@@ -29,7 +29,7 @@ export type RunResult = {
 	result: (ValueInfo & { repr?: string }) | null;
 	targets: Record<string, ValueInfo>;
 	error: PyError | null;
-	variables?: ArrayInfo[];
+	variables?: (ArrayInfo | FrameInfo)[];
 };
 
 export type RuntimeVersions = { python: string; numpy: string; pyodide: string };

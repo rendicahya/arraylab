@@ -102,8 +102,8 @@ describe('explainError', () => {
 		expect(e.hint).toContain('(2, 3)');
 	});
 	it('falls back to a generic explanation', () => {
-		expect(explainError({ type: 'KeyError', message: "'x'", line: 3 }).title).toBe(
-			'Python raised a KeyError (line 3).'
+		expect(explainError({ type: 'StopIteration', message: '', line: 3 }).title).toBe(
+			'Python raised a StopIteration (line 3).'
 		);
 	});
 });

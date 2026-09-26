@@ -6,13 +6,14 @@ import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide } from 'pyodide';
 import type { RunRequest, RunResult } from './protocol';
-import type { ArrayInfo } from '../array/types';
+import type { ArrayInfo, FrameInfo } from '../array/types';
 
 let run: (req: Partial<RunRequest> & { code: string }) => RunResult;
 
 beforeAll(async () => {
 	const py = await loadPyodide();
-	await py.loadPackage('numpy');
+	// The browser loads pandas only when code imports it; here it is loaded up front.
+	await py.loadPackage(['numpy', 'pandas']);
 	py.runPython(readFileSync(new URL('./extractor.py', import.meta.url), 'utf8'));
 	const fn = py.globals.get('run');
 	run = (req) => JSON.parse(fn(JSON.stringify({ namespace: 'test', ...req })));
@@ -109,7 +110,11 @@ describe('error explanations match real NumPy messages', async () => {
 		['np.ones(3)[np.array([True, False])]', /mask has the wrong shape/],
 		['np.array([300], dtype=np.uint8)', /does not fit in uint8/],
 		['x = np.ones(2, dtype=np.int32)\nx += 0.5', /cannot be stored back/],
-		['import torch', /PyTorch is not available/]
+		['import torch', /PyTorch is not available/],
+		['import pandas as pd\npd.DataFrame(np.ones((2, 3)), index=[1])', /labels does not match/],
+		['import pandas as pd\npd.DataFrame(np.ones((2, 2, 2)))', /cannot hold a 3-D/],
+		['import pandas as pd\npd.DataFrame({"A": [1]}).loc[5]', /no key or label 5/],
+		['import pandas as pd\npd.DataFrame({"A": [1]}).iloc[5]', /position does not exist/]
 	];
 	for (const [code, expected] of cases) {
 		it(code, () => {
@@ -149,7 +154,16 @@ describe('every tool generates code that NumPy runs', async () => {
 			{ tool: 'torch', torch: { view, op: 'sum0', focus: null } }
 		]),
 		...TORCH_OPS.map((op): [string, Partial<Settings>] => [`torch op ${op.id}`, { tool: 'torch', torch: { view: 'ops', op: op.id, focus: null } }]),
-		['autograd', { tool: 'autograd' }]
+		['autograd', { tool: 'autograd' }],
+		...(['frame', 'dtypes', 'axis', 'select', 'align'] as const).map((view): [string, Partial<Settings>] => [
+			`pandas ${view}`,
+			{ tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view } }
+		]),
+		['pandas default labels', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, index: '', columns: '' } }],
+		['pandas iloc', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'select', accessor: 'iloc', select: '0:1, 1:' } }],
+		['pandas column', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'select', accessor: '', select: "['A', 'C']" } }],
+		['pandas mask', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'select', select: "df['A'] > 2, 'B'" } }],
+		['pandas fill', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'align', fill: true, op: '*' } }]
 	];
 	for (const [label, patch] of variants) {
 		it(label, () => {
@@ -189,13 +203,14 @@ describe('every lesson step and task runs under real NumPy', async () => {
 		'An index that does not exist',
 		'An impossible shape: (5, 3)',
 		'Creating (not converting) an out-of-range value raises an error',
-		'Incompatible shapes'
+		'Incompatible shapes',
+		'A label that does not exist'
 	];
 
 	function applyPatch(s: Settings, p: Patch): Settings {
 		const n = structuredClone(s);
 		if (p.tool) n.tool = p.tool;
-		for (const k of ['source', 'axis', 'index', 'reshape', 'broadcast', 'vectorize', 'dtype', 'torch'] as const) {
+		for (const k of ['source', 'axis', 'index', 'reshape', 'broadcast', 'vectorize', 'dtype', 'torch', 'pandas'] as const) {
 			if (p[k]) Object.assign(n[k], p[k]);
 		}
 		if (p.autograd) {
@@ -277,5 +292,87 @@ describe('autograd tool matches real PyTorch gradients', async () => {
 		const r = run({ code: spec.code, extra: spec.extra, targets: spec.targets, clear: spec.clear, namespace: 'autograd' });
 		expect(r.error).toBeNull();
 		expect((r.targets.__grad as ArrayInfo).values!.every((v) => v === 'nan')).toBe(true);
+	});
+});
+
+describe('pandas (real pandas 3 in Pyodide)', async () => {
+	const { buildSpec } = await import('../lab/codegen');
+	const { DEFAULT_SETTINGS } = await import('../lab/types');
+	type Pandas = typeof DEFAULT_SETTINGS.pandas;
+	const runPandas = (pandas: Partial<Pandas>, text = '1 2 3\n4 5 6') => {
+		const spec = buildSpec({
+			...structuredClone(DEFAULT_SETTINGS),
+			tool: 'pandas',
+			source: { mode: 'literal', text, dtype: '', expr: '' },
+			pandas: { ...DEFAULT_SETTINGS.pandas, ...pandas }
+		});
+		expect(spec.inputError).toBeUndefined();
+		return run({ code: spec.code, extra: spec.extra, targets: spec.targets, clear: spec.clear, namespace: 'pandas' });
+	};
+
+	it('runs the pandas version ArrayLab states', async () => {
+		const { PANDAS_VERSION } = await import('./config');
+		expect((run({ code: 'import pandas as pd\npd.__version__' }).result as { repr: string }).repr).toBe(`'${PANDAS_VERSION}'`);
+	});
+
+	it('describes a DataFrame: labels, per-column dtypes, values', () => {
+		const r = runPandas({ view: 'frame' });
+		expect(r.error).toBeNull();
+		const df = r.targets.df as FrameInfo;
+		expect(df).toMatchObject({
+			kind: 'frame',
+			shape: [2, 3],
+			index: ['r0', 'r1'],
+			columns: ['A', 'B', 'C'],
+			dtypes: ['int32', 'int32', 'int32'],
+			values: ['1', '2', '3', '4', '5', '6'],
+			indexType: 'Index'
+		});
+		expect((r.targets.values as ArrayInfo).shape).toEqual([2, 3]);
+		// pandas 3 copies the ndarray it is built from.
+		expect((r.targets.__shared as ArrayInfo).values).toEqual(['False']);
+		expect(r.result?.kind).toBe('frame');
+	});
+
+	it('gives each column its own dtype; a missing value changes it', () => {
+		const dtypes = (missing: Pandas['missing']) => (runPandas({ view: 'dtypes', missing }).targets.df as FrameInfo).dtypes;
+		expect(dtypes('none')).toEqual(['str', 'int64', 'float64', 'bool']);
+		expect(dtypes('age')).toEqual(['str', 'float64', 'float64', 'bool']);
+		expect(dtypes('passed')).toEqual(['str', 'int64', 'float64', 'object']);
+		const r = runPandas({ view: 'dtypes', missing: 'age' });
+		expect((r.targets.df as FrameInfo).values[2 * 4 + 1]).toBe('NaN');
+		expect((r.targets.values as ArrayInfo).dtype).toBe('object');
+		expect((r.targets.numbers as ArrayInfo).dtype).toBe('float64');
+	});
+
+	it('reduces along an axis and skips NaN (NumPy does not)', () => {
+		const r = runPandas({ view: 'axis', fn: 'sum', axis: 0 }, '1 nan\n3 4');
+		const res = r.targets.result as FrameInfo;
+		expect(res.kind).toBe('series');
+		expect(res.index).toEqual(['A', 'B']);
+		expect(res.values).toEqual(['4.0', '4.0']);
+		expect((r.targets.__np as ArrayInfo).values).toEqual(['4.0', 'nan']);
+	});
+
+	it('loc slices by label and includes the end; iloc slices by position and excludes it', () => {
+		const loc = runPandas({ view: 'select', accessor: 'loc', select: "'r0':'r1', 'A':'B'" });
+		expect((loc.targets.result as FrameInfo).shape).toEqual([2, 2]);
+		expect((loc.targets.__src as ArrayInfo).values).toEqual(['0', '1', '3', '4']);
+		const iloc = runPandas({ view: 'select', accessor: 'iloc', select: '0:1, 0:2' });
+		expect((iloc.targets.result as FrameInfo).shape).toEqual([1, 2]);
+		const col = runPandas({ view: 'select', accessor: '', select: "'B'" });
+		expect((col.targets.__src as ArrayInfo).values).toEqual(['1', '4']);
+		const bad = runPandas({ view: 'select', accessor: 'loc', select: '0' });
+		expect(bad.error?.type).toBe('KeyError');
+	});
+
+	it('aligns Series by label; missing labels give NaN', () => {
+		const r = runPandas({ view: 'align' });
+		const res = r.targets.result as FrameInfo;
+		expect(res.index).toEqual(['a', 'b', 'c', 'd']);
+		expect(res.values).toEqual(['NaN', '12.0', '23.0', 'NaN']);
+		expect((r.targets.positional as ArrayInfo).values).toEqual(['11', '22', '33']);
+		const filled = runPandas({ view: 'align', fill: true });
+		expect((filled.targets.result as FrameInfo).values).toEqual(['1.0', '12.0', '23.0', '30.0']);
 	});
 });

@@ -6,6 +6,7 @@ import { dtype } from './dtype';
 import { broadcasting } from './broadcasting';
 import { vectorization } from './vectorization';
 import { torchChapters } from './torch';
+import { pandas } from './pandas';
 import type { Chapter } from './types';
 
 export type { Chapter, Step, Task } from './types';
@@ -18,7 +19,8 @@ export const chapters: Chapter[] = [
 	dtype,
 	broadcasting,
 	vectorization,
-	...torchChapters
+	...torchChapters,
+	pandas
 ];
 
 export function getChapter(slug: string): Chapter | undefined {

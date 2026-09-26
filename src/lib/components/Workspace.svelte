@@ -13,9 +13,12 @@
 	import CodeResultView from '../visualization/CodeResultView.svelte';
 	import TorchView from '../visualization/TorchView.svelte';
 	import AutogradView from '../visualization/AutogradView.svelte';
+	import PandasView from '../visualization/pandas/PandasView.svelte';
+	import FrameInspector from './FrameInspector.svelte';
+	import { pandasUsesSource } from '../lab/codegen';
 	import type { Lab } from '../lab/lab.svelte';
 	import { TOOLS } from '../lab/types';
-	import type { ArrayInfo } from '../array/types';
+	import { isFrameInfo, type ArrayInfo, type FrameInfo } from '../array/types';
 
 	/**
 	 * The lab layout: optional lesson column, visualization, inspector and code panel.
@@ -29,8 +32,36 @@
 
 	const tool = $derived(lab.settings.tool);
 
+	const showSource = $derived(
+		tool !== 'code' && tool !== 'autograd' && (tool !== 'pandas' || pandasUsesSource(lab.settings.pandas.view))
+	);
+
+	/** DataFrames and Series shown in the inspector. */
+	const frames = $derived.by((): { name: string; info: FrameInfo }[] => {
+		if (tool === 'code') {
+			const v = lab.scratchView;
+			return v && isFrameInfo(v) ? [{ name: v.name ?? 'value', info: v }] : [];
+		}
+		if (tool !== 'pandas' || !lab.resultFor('pandas')) return [];
+		const out: { name: string; info: FrameInfo }[] = [];
+		for (const name of ['df', 's1', 's2', 'result']) {
+			const f = lab.frame(name);
+			if (f) out.push({ name, info: f });
+		}
+		return out;
+	});
+
 	const inspected = $derived.by((): { name: string; info: ArrayInfo }[] => {
-		if (tool === 'code') return lab.scratchView ? [{ name: lab.scratchView.name ?? 'value', info: lab.scratchView }] : [];
+		if (tool === 'code') {
+			const v = lab.scratchView;
+			return v && !isFrameInfo(v) ? [{ name: v.name ?? 'value', info: v }] : [];
+		}
+		if (tool === 'pandas') {
+			const fresh = lab.resultFor('pandas');
+			const a = showSource ? (fresh ? lab.target('a') : lab.provisional) : null;
+			const result = fresh ? lab.target('result') : null;
+			return [...(a ? [{ name: 'a', info: a }] : []), ...(result ? [{ name: 'result', info: result }] : [])];
+		}
 		const fresh = lab.resultFor(tool);
 		if (tool === 'autograd') {
 			const loss = fresh ? lab.target('loss') : null;
@@ -54,7 +85,7 @@
 	{/if}
 
 	<section class="center" aria-label="Array lab">
-		{#if tool !== 'code' && tool !== 'autograd'}
+		{#if showSource}
 			<div class="source-wrap"><SourceInput {lab} /></div>
 		{/if}
 		<div class="tool-tabs" role="tablist" aria-label="Tools">
@@ -78,6 +109,7 @@
 			{:else if tool === 'dtype'}<DtypeView {lab} />
 			{:else if tool === 'torch'}<TorchView {lab} />
 			{:else if tool === 'autograd'}<AutogradView {lab} />
+			{:else if tool === 'pandas'}<PandasView {lab} />
 			{:else}<CodeResultView {lab} />{/if}
 		</div>
 	</section>
@@ -90,9 +122,13 @@
 				name={item.name}
 				showNote={inspected.findIndex((x) => x.info.dtype === 'int32') === i}
 			/>
-		{:else}
-			<p class="muted small">Array properties appear here.</p>
 		{/each}
+		{#each frames as item (item.name)}
+			<FrameInspector info={item.info} name={item.name} />
+		{/each}
+		{#if !inspected.length && !frames.length}
+			<p class="muted small">Array properties appear here.</p>
+		{/if}
 	</aside>
 
 	<div class="bottom"><CodePanel {lab} /></div>

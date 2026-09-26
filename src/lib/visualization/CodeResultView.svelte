@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ArrayGrid from './ArrayGrid.svelte';
 	import ShapeView from './ShapeView.svelte';
+	import FrameTable from './FrameTable.svelte';
+	import { isFrameInfo } from '../array/types';
 	import ErrorCard from '../components/ErrorCard.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import { formatShape } from '../array/normalize';
@@ -20,9 +22,9 @@
 {/if}
 {#if !r}
 	<div class="empty">
-		<p><strong>Write NumPy code in the editor below and press Run</strong> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>).</p>
+		<p><strong>Write NumPy (or pandas) code in the editor below and press Run</strong> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>).</p>
 		<p class="muted">
-			Arrays you create appear here. The variables from the tools (<code>a</code>, <code>b</code>, <code>result</code>)
+			Arrays and DataFrames you create appear here. The variables from the tools (<code>a</code>, <code>b</code>, <code>result</code>)
 			live in the same Python session, so you can use them directly.
 		</p>
 	</div>
@@ -30,7 +32,7 @@
 	{#if r.error}<ErrorCard error={r.error} />{/if}
 	{#if r.variables?.length}
 		<div class="vars" role="group" aria-label="Arrays in this session">
-			<span class="eyebrow">Arrays</span>
+			<span class="eyebrow">Variables</span>
 			{#each r.variables as v (v.name)}
 				<button
 					type="button"
@@ -50,7 +52,10 @@
 			<span class="muted small">type: <code>{other.pythonType}</code></span>
 		</div>
 	{/if}
-	{#if view}
+	{#if view && isFrameInfo(view)}
+		<p class="small muted"><code>{view.name}</code> · {view.pythonType} · shape {formatShape(view.shape)}</p>
+		<div class="stage"><FrameTable info={view} name={view.name} /></div>
+	{:else if view}
 		<ShapeView info={view} name={view.name} />
 		<div class="stage"><ArrayGrid info={view} name={view.name} /></div>
 	{/if}

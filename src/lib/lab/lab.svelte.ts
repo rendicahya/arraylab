@@ -1,7 +1,7 @@
 import { runtime } from '../runtime/executor.svelte';
 import type { RunResult } from '../runtime/protocol';
-import type { ArrayInfo } from '../array/types';
-import { isArrayInfo } from '../array/types';
+import type { ArrayInfo, FrameInfo } from '../array/types';
+import { isArrayInfo, isFrameInfo } from '../array/types';
 import { parseLiteral, type Nested } from '../array/literal';
 import { buildSpec, type RunSpec } from './codegen';
 import { DEFAULT_SETTINGS, type LabPatch, type LabSettings, type ToolId } from './types';
@@ -61,6 +61,7 @@ export class Lab {
 		if (patch.vectorize) Object.assign(s.vectorize, patch.vectorize);
 		if (patch.dtype) Object.assign(s.dtype, patch.dtype);
 		if (patch.torch) Object.assign(s.torch, patch.torch);
+		if (patch.pandas) Object.assign(s.pandas, patch.pandas);
 		if (patch.autograd) {
 			const { values, requiresGrad, ...rest } = patch.autograd;
 			if (values) Object.assign(s.autograd.values, values);
@@ -80,6 +81,12 @@ export class Lab {
 		return isArrayInfo(v) ? v : null;
 	}
 
+	/** A described DataFrame or Series from the latest result. */
+	frame(name: string): FrameInfo | null {
+		const v = this.result?.targets[name];
+		return isFrameInfo(v) ? v : null;
+	}
+
 	/** Latest result, but only if it was produced by `tool` (avoids flashes when switching). */
 	resultFor(tool: ToolId): RunResult | null {
 		return this.ranSpec?.tool === tool ? this.result : null;
@@ -91,7 +98,7 @@ export class Lab {
 	scratchResult = $state<RunResult | null>(null);
 	scratchRunning = $state(false);
 	/** Variable currently visualized in the "Your code" view. */
-	scratchView = $state<ArrayInfo | null>(null);
+	scratchView = $state<ArrayInfo | FrameInfo | null>(null);
 
 	/** The code that produced `scratchResult` (the editor may have changed since). */
 	scratchRanCode = $state('');
@@ -110,7 +117,7 @@ export class Lab {
 			this.scratchRanCode = code;
 			this.runtimeError = null;
 			const last = result.result;
-			if (isArrayInfo(last)) {
+			if (isArrayInfo(last) || isFrameInfo(last)) {
 				this.scratchView = { ...last, name: guessName(this.scratchCode) };
 			} else if (result.variables?.length && !result.error) {
 				const names = result.variables.map((v) => v.name);
@@ -133,7 +140,7 @@ export class Lab {
 	async showVariable(name: string) {
 		const r = await runtime.run({ code: '', namespace: this.namespace, targets: [name] });
 		const v = r.targets[name];
-		if (isArrayInfo(v)) this.scratchView = v;
+		if (isArrayInfo(v) || isFrameInfo(v)) this.scratchView = v;
 		this.settings.tool = 'code';
 	}
 

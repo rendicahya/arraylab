@@ -5,6 +5,7 @@ import type { RuntimeVersions, WorkerRequest, WorkerResponse } from './protocol'
 
 type PyodideAPI = {
 	loadPackage(names: string | string[], options?: { messageCallback?: (m: string) => void }): Promise<void>;
+	loadPackagesFromImports(code: string, options?: { messageCallback?: (m: string) => void }): Promise<unknown>;
 	runPython(code: string): unknown;
 	globals: { get(name: string): (...args: unknown[]) => unknown };
 };
@@ -28,6 +29,20 @@ async function boot(id: number): Promise<PyodideAPI> {
 	return py;
 }
 
+/**
+ * Packages such as pandas are large, so they are downloaded only when code
+ * imports them (Pyodide ignores imports it has no package for, e.g. torch).
+ */
+async function loadImports(py: PyodideAPI, id: number, code: string) {
+	if (!/\bimport\b/.test(code)) return;
+	await py.loadPackagesFromImports(code, {
+		messageCallback: (m) => {
+			const loading = m.match(/^Loading (.+)$/);
+			if (loading) post({ id, type: 'progress', message: `Loading ${loading[1]}…` });
+		}
+	});
+}
+
 ctx.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 	const msg = event.data;
 	try {
@@ -41,6 +56,8 @@ ctx.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 			const v = JSON.parse(py.globals.get('versions')() as string) as Omit<RuntimeVersions, 'pyodide'>;
 			post({ id: msg.id, type: 'ready', versions: { ...v, pyodide: PYODIDE_VERSION } });
 		} else if (msg.type === 'run') {
+			await loadImports(py, msg.id, `${msg.request.code}
+${msg.request.extra ?? ''}`);
 			const out = py.globals.get('run')(JSON.stringify(msg.request)) as string;
 			post({ id: msg.id, type: 'result', result: JSON.parse(out) });
 		} else if (msg.type === 'reset') {

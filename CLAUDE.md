@@ -778,6 +778,17 @@ Initial chapters:
 * backward
 * gradients
 
+## 11 — NumPy → pandas
+
+* DataFrame = 2-D array + labels (index, columns)
+* dtype per column (missing values change dtypes)
+* axis in pandas (labeled results, NaN skipped)
+* loc vs iloc (labels vs positions, slice ends)
+* alignment vs broadcasting
+
+pandas runs for real in Pyodide (loaded lazily only when code imports it). Keep this chapter a bridge from NumPy;
+do not grow it into a general pandas course (groupby, merge, I/O) unless explicitly requested.
+
 ---
 
 # UX Guidelines
