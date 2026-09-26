@@ -6,7 +6,7 @@ import { literal, type Chapter } from './types';
  */
 export const pandas: Chapter = {
 	slug: 'numpy-to-pandas',
-	number: '11',
+	number: '13',
 	title: 'NumPy → pandas',
 	summary: 'A DataFrame is an array with labels: dtype per column, axis, loc vs iloc, alignment.',
 	topics: ['DataFrame = array + labels', 'dtype per column', 'axis in pandas', 'loc vs iloc', 'Alignment vs broadcasting'],

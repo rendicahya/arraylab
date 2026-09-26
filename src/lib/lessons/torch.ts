@@ -15,7 +15,7 @@ const DEFAULT_AUTOGRAD = {
 export const torchChapters: Chapter[] = [
 	{
 		slug: 'numpy-to-pytorch',
-		number: '08',
+		number: '10',
 		title: 'NumPy → PyTorch',
 		summary: 'ndarray vs Tensor: converting, similarities and differences.',
 		topics: ['ndarray vs Tensor', 'Converting between them', 'Similarities', 'Differences'],
@@ -38,7 +38,7 @@ export const torchChapters: Chapter[] = [
 				title: 'Converting between them',
 				body: [
 					'`torch.from_numpy(a)` wraps the **same memory** as `a` — nothing is copied. `torch.tensor(a)` makes a **copy**. `t.numpy()` goes back to NumPy, again without copying.',
-					'Sharing memory is fast, but a change on one side shows up on the other — exactly like NumPy views in chapter 02.'
+					'Sharing memory is fast, but a change on one side shows up on the other — exactly like NumPy views in chapter 08.'
 				],
 				patch: { tool: 'torch', ...literal('1 2 3\n4 5 6'), torch: { view: 'convert', focus: null } },
 				tasks: [
@@ -79,7 +79,7 @@ export const torchChapters: Chapter[] = [
 	},
 	{
 		slug: 'pytorch-tensor',
-		number: '09',
+		number: '11',
 		title: 'PyTorch Tensor',
 		summary: 'Tensor creation, shape, dtype, numel and device.',
 		topics: ['Tensor creation', 'Shape', 'dtype', 'numel', 'device'],
@@ -149,7 +149,7 @@ export const torchChapters: Chapter[] = [
 	},
 	{
 		slug: 'autograd',
-		number: '10',
+		number: '12',
 		title: 'Autograd',
 		summary: 'requires_grad, the computational graph, backward and gradients.',
 		topics: ['requires_grad', 'Forward computation', 'Computational graph', 'backward', 'Gradients'],

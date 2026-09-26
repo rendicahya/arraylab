@@ -5,6 +5,8 @@ import { indexing } from './indexing';
 import { dtype } from './dtype';
 import { broadcasting } from './broadcasting';
 import { vectorization } from './vectorization';
+import { views } from './views';
+import { combining } from './combining';
 import { torchChapters } from './torch';
 import { pandas } from './pandas';
 import type { Chapter } from './types';
@@ -19,6 +21,8 @@ export const chapters: Chapter[] = [
 	dtype,
 	broadcasting,
 	vectorization,
+	views,
+	combining,
 	...torchChapters,
 	pandas
 ];

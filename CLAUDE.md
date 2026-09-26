@@ -755,14 +755,29 @@ Initial chapters:
 * NumPy ufuncs
 * Vectorized thinking
 
-## 08 — NumPy → PyTorch
+## 08 — View vs copy
+
+* b = a (no copy)
+* Slices are views (strides)
+* Fancy & boolean indexing copy
+* reshape / T / ravel vs flatten
+* When to copy
+
+## 09 — Combining arrays
+
+* concatenate
+* Shapes that fit
+* stack & np.newaxis
+* split (returns views)
+
+## 10 — NumPy → PyTorch
 
 * ndarray vs Tensor
 * Converting between them
 * Similarities
 * Differences
 
-## 09 — PyTorch Tensor
+## 11 — PyTorch Tensor
 
 * Tensor creation
 * Shape
@@ -770,7 +785,7 @@ Initial chapters:
 * numel
 * device
 
-## 10 — Autograd
+## 12 — Autograd
 
 * requires_grad
 * forward computation
@@ -778,7 +793,7 @@ Initial chapters:
 * backward
 * gradients
 
-## 11 — NumPy → pandas
+## 13 — NumPy → pandas
 
 * DataFrame = 2-D array + labels (index, columns)
 * dtype per column (missing values change dtypes)

@@ -6,6 +6,8 @@ export type ToolId =
 	| 'broadcast'
 	| 'vectorize'
 	| 'dtype'
+	| 'views'
+	| 'combine'
 	| 'torch'
 	| 'autograd'
 	| 'pandas'
@@ -31,6 +33,13 @@ export type BroadcastOp = '+' | '-' | '*' | '/' | '**' | '>';
 export type BroadcastState = { b: string; op: BroadcastOp };
 export type VectorizeState = { op: VectorOpId };
 export type DtypeState = { target: string };
+
+/** `b = a<suffix>`, e.g. `[:, 1]`, `.T` or `.copy()`; then optionally write into b. */
+export type ViewsState = { suffix: string; write: boolean };
+
+export type CombineOp = 'concatenate' | 'stack' | 'split';
+/** np.concatenate / np.stack of a and b, or np.split of a into `parts` pieces. */
+export type CombineState = { op: CombineOp; b: string; axis: number; parts: number };
 
 export type VectorOpId = 'double' | 'add10' | 'square' | 'sqrt' | 'abs' | 'gt2';
 
@@ -87,6 +96,8 @@ export type LabSettings = {
 	broadcast: BroadcastState;
 	vectorize: VectorizeState;
 	dtype: DtypeState;
+	views: ViewsState;
+	combine: CombineState;
 	torch: TorchState;
 	autograd: AutogradState;
 	pandas: PandasState;
@@ -102,6 +113,8 @@ export type LabPatch = {
 	broadcast?: Partial<BroadcastState>;
 	vectorize?: Partial<VectorizeState>;
 	dtype?: Partial<DtypeState>;
+	views?: Partial<ViewsState>;
+	combine?: Partial<CombineState>;
 	torch?: Partial<TorchState>;
 	autograd?: {
 		values?: Partial<Record<AutogradLeaf, number>>;
@@ -123,6 +136,8 @@ export const DEFAULT_SETTINGS: LabSettings = {
 	broadcast: { b: '10 20 30', op: '+' },
 	vectorize: { op: 'double' },
 	dtype: { target: 'float32' },
+	views: { suffix: '[:, 1]', write: false },
+	combine: { op: 'concatenate', b: '7 8 9', axis: 0, parts: 3 },
 	torch: { view: 'tensor', op: 'sum0', focus: null },
 	autograd: {
 		values: { x: 2, w: 3, b: 1, y: 10 },
@@ -157,6 +172,8 @@ export const TOOLS: { id: ToolId; label: string; description: string; group: Too
 	{ id: 'broadcast', label: 'Broadcast', description: 'Combine arrays of different shapes', group: 'numpy' },
 	{ id: 'vectorize', label: 'Vectorize', description: 'Loops vs whole-array operations', group: 'numpy' },
 	{ id: 'dtype', label: 'dtype', description: 'Convert between data types', group: 'numpy' },
+	{ id: 'views', label: 'View/copy', description: 'Does b share memory with a? Write into b and see', group: 'numpy' },
+	{ id: 'combine', label: 'Combine', description: 'concatenate, stack and split arrays', group: 'numpy' },
 	{ id: 'torch', label: '→ PyTorch', description: 'The same array as a PyTorch tensor (PyTorch code is shown, not run)', group: 'torch' },
 	{ id: 'autograd', label: 'Autograd', description: 'A computational graph: forward values and backward gradients', group: 'torch' },
 	{ id: 'pandas', label: 'pandas', description: 'The array as a labeled pandas DataFrame', group: 'pandas' },

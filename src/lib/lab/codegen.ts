@@ -25,7 +25,10 @@ export type RunSpec = {
 };
 
 const HEADER = 'import numpy as np\n\n';
-const HELPERS = ['__src', '__view', '__ia', '__ib', '__changed', '__range', '__ids'];
+const HELPERS = ['__src', '__view', '__ia', '__ib', '__changed', '__range', '__ids', '__a0', '__b0', '__shared', '__same', '__part', '__views'];
+/** Most pieces np.split can show; each piece is a target `__p0`, `__p1`, … */
+export const MAX_PARTS = 6;
+const PART_NAMES = Array.from({ length: MAX_PARTS }, (_, i) => `__p${i}`);
 
 export const REDUCE_FNS: { id: ReduceFn; label: string }[] = [
 	{ id: 'sum', label: 'sum' },
@@ -63,6 +66,9 @@ export const DTYPES = [
 	'float64',
 	'complex128'
 ] as const;
+
+/** What may follow `a` in the views tool: nothing, or something starting with [ or .name */
+export const VIEW_SUFFIX = /^(?:|\[.*|\.[A-Za-z_].*)$/;
 
 export const SHAPE_PATTERN = /^\s*-?\d+\s*(,\s*-?\d+\s*)*,?\s*$/;
 export const AXES_PATTERN = /^\s*(\d+\s*(,\s*\d+\s*)*)?$/;
@@ -112,7 +118,7 @@ export function shapeOpExpr(target: string, r: LabSettings['reshape']): string {
 
 export function buildSpec(settings: LabSettings): RunSpec {
 	const tool = settings.tool;
-	const clear = ['result', 'b', 'loop_result', 'vec_result', ...HELPERS];
+	const clear = ['result', 'b', 'parts', 'loop_result', 'vec_result', ...HELPERS, ...PART_NAMES];
 	if (tool === 'code') return { tool, skip: true, code: '', targets: [], clear: [] };
 	if (tool === 'autograd') {
 		const inputError = autogradInputError(settings.autograd);
@@ -175,6 +181,58 @@ export function buildSpec(settings: LabSettings): RunSpec {
 				'__ib = np.broadcast_to(np.arange(b.size).reshape(b.shape), result.shape)'
 			].join('\n');
 			targets = ['a', 'b', 'result', '__ia', '__ib'];
+			break;
+		}
+
+		case 'views': {
+			const suffix = settings.views.suffix.trim();
+			if (!VIEW_SUFFIX.test(suffix)) {
+				inputError = 'After a, write an index like [:, 1] or an attribute like .T or .copy() — or leave it empty for b = a.';
+				break;
+			}
+			// Provenance and "before" values come from a fresh copy of the source, so a
+			// write into b (or a mask like a > 2) cannot change them.
+			const onA0 = suffix.replace(/\ba\b/g, '__a0');
+			lines.push('', `b = a${suffix}`);
+			if (settings.views.write) lines.push('b[...] = 99'.padEnd(20) + '# write into every element of b', '', 'a');
+			else lines.push('', 'np.shares_memory(a, b)');
+			extra = [
+				src.code.replace(/^a = /, '__a0 = '),
+				`__b0 = __a0${onA0}`,
+				'__shared = np.shares_memory(a, b)',
+				'__same = b is a',
+				'try:',
+				`    __src = np.arange(__a0.size).reshape(__a0.shape)${onA0}`,
+				'except Exception:',
+				'    pass'
+			].join('\n');
+			targets = ['a', 'b', '__a0', '__b0', '__shared', '__same', '__src'];
+			break;
+		}
+
+		case 'combine': {
+			const c = settings.combine;
+			if (c.op === 'split') {
+				const n = Math.min(MAX_PARTS, Math.max(1, Math.round(c.parts)));
+				lines.push('', `parts = np.split(a, ${n}, axis=${c.axis})`, 'parts');
+				extra = [
+					'__views = np.array([np.shares_memory(p, a) for p in parts])',
+					`__part = np.concatenate([np.full(p.shape, i) for i, p in enumerate(parts)], axis=${c.axis})`,
+					...PART_NAMES.slice(0, n).map((name, i) => `${name} = parts[${i}]`)
+				].join('\n');
+				targets = ['a', '__views', '__part', ...PART_NAMES.slice(0, n)];
+				break;
+			}
+			const parsed = parseLiteral(c.b);
+			if (!parsed.ok) {
+				inputError = `b: ${parsed.message}`;
+				break;
+			}
+			const fn = c.op === 'stack' ? 'np.stack' : 'np.concatenate';
+			lines.push(literalToCode('b', parsed.nested), '', `result = ${fn}([a, b], axis=${c.axis})`, 'result');
+			// Ids 0 … a.size-1 come from a, the rest from b.
+			extra = `__src = ${fn}([np.arange(a.size).reshape(a.shape), np.arange(a.size, a.size + b.size).reshape(b.shape)], axis=${c.axis})`;
+			targets = ['a', 'b', 'result', '__src'];
 			break;
 		}
 

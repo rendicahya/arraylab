@@ -54,6 +54,8 @@ You don't need to write any code to get started.
 | **Broadcast** | How two arrays of different shapes are lined up and stretched to fit together          |
 | **Vectorize** | A Python loop compared side by side with the same operation done on the whole array   |
 | **dtype**     | Converting between data types and what happens to the values and the memory           |
+| **View/copy** | Does `b` share memory with `a`? Write into `b` and see whether `a` changes             |
+| **Combine**   | `concatenate`, `stack` and `split`: which axis grows, and which shapes fit             |
 | **→ PyTorch** | The same array as a PyTorch tensor: properties, conversion, operations, creation, device |
 | **Autograd**  | A small computational graph: forward values, `grad_fn`, and gradients via the chain rule |
 | **pandas**    | The array as a labeled DataFrame: dtype per column, `axis`, `loc` / `iloc`, label alignment |
@@ -70,10 +72,12 @@ You don't need to write any code to get started.
 | 05  | dtype                  | Integers, floats, booleans, conversion, overflow, `itemsize` and `nbytes`      |
 | 06  | Broadcasting           | Aligning shapes from the right, compatible and incompatible shapes            |
 | 07  | Vectorization          | Replacing Python loops with whole-array operations                            |
-| 08  | NumPy → PyTorch        | ndarray vs Tensor, `from_numpy` / `.numpy()`, what's the same and what differs |
-| 09  | PyTorch Tensor         | Creating tensors, `torch.Size`, dtype, `numel()` and `device`                  |
-| 10  | Autograd               | `requires_grad`, the computational graph, `backward()` and gradient descent     |
-| 11  | NumPy → pandas         | A DataFrame is an array with labels: dtype per column, axis, `loc` vs `iloc`, alignment |
+| 08  | View vs copy           | Which operations share memory, strides, and when to call `.copy()`             |
+| 09  | Combining arrays       | `concatenate`, `stack`, `np.newaxis` and `split`                               |
+| 10  | NumPy → PyTorch        | ndarray vs Tensor, `from_numpy` / `.numpy()`, what's the same and what differs |
+| 11  | PyTorch Tensor         | Creating tensors, `torch.Size`, dtype, `numel()` and `device`                  |
+| 12  | Autograd               | `requires_grad`, the computational graph, `backward()` and gradient descent     |
+| 13  | NumPy → pandas         | A DataFrame is an array with labels: dtype per column, axis, `loc` vs `iloc`, alignment |
 
 ## Good to know
 
@@ -90,11 +94,11 @@ You don't need to write any code to get started.
   much is hidden.
 - **Light and dark themes.** ArrayLab follows your system setting, and you can switch with the button at the top right.
   Your choice is remembered.
-- **PyTorch chapters are honest about the browser.** PyTorch can't run in a browser, so chapters 08–10 run the NumPy
+- **PyTorch chapters are honest about the browser.** PyTorch can't run in a browser, so chapters 10–12 run the NumPy
   side for real and show the matching PyTorch code next to it, clearly marked "not run here". Every PyTorch result they
   state (dtypes, error messages, `grad_fn` names) was recorded with real PyTorch. To run the PyTorch code yourself, open
   the [companion notebook in Google Colab](https://colab.research.google.com/github/rendicahya/arraylab/blob/main/notebooks/pytorch.ipynb).
-- **pandas runs for real.** Chapter 11 uses the real pandas 3 that ships with Pyodide. It is downloaded (≈ 5 MB)
+- **pandas runs for real.** Chapter 13 uses the real pandas 3 that ships with Pyodide. It is downloaded (≈ 5 MB)
   only the first time you use pandas — in the pandas tool or with `import pandas` in your own code.
 - **Browser support:** use an up-to-date browser. ArrayLab works on phones, but a laptop, desktop or tablet is
   more comfortable.
@@ -134,7 +138,7 @@ src/lib/
 src/routes/       /, /lab/, /learn/[slug]/ (all prerendered)
 ```
 
-PyTorch facts shown in chapters 08–10 come from `src/lib/torch/reference.json`, generated with real PyTorch by
+PyTorch facts shown in chapters 10–12 come from `src/lib/torch/reference.json`, generated with real PyTorch by
 `python scripts/torch_reference.py > src/lib/torch/reference.json`. The Colab notebook lives in `notebooks/`.
 
 Highlighting is based on what NumPy actually did. ArrayLab applies the same operation to an array of element ids, so

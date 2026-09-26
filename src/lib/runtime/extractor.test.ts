@@ -114,7 +114,12 @@ describe('error explanations match real NumPy messages', async () => {
 		['import pandas as pd\npd.DataFrame(np.ones((2, 3)), index=[1])', /labels does not match/],
 		['import pandas as pd\npd.DataFrame(np.ones((2, 2, 2)))', /cannot hold a 3-D/],
 		['import pandas as pd\npd.DataFrame({"A": [1]}).loc[5]', /no key or label 5/],
-		['import pandas as pd\npd.DataFrame({"A": [1]}).iloc[5]', /position does not exist/]
+		['import pandas as pd\npd.DataFrame({"A": [1]}).iloc[5]', /position does not exist/],
+		['np.concatenate([np.ones((2, 3)), np.ones(3)])', /2-D and a 1-D array cannot be concatenated/],
+		['np.concatenate([np.ones((2, 3)), np.ones((1, 3))], axis=1)', /do not fit together along axis 0/],
+		['np.stack([np.ones((2, 3)), np.ones((1, 3))])', /exactly the same shape/],
+		['np.split(np.ones(6), 4)', /cannot cut this axis into equal pieces/],
+		['b = np.ones((2, 3))[0, 1]\nb[...] = 99', /single element \(numpy.float64\) cannot be written/]
 	];
 	for (const [code, expected] of cases) {
 		it(code, () => {
@@ -163,6 +168,19 @@ describe('every tool generates code that NumPy runs', async () => {
 		['pandas iloc', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'select', accessor: 'iloc', select: '0:1, 1:' } }],
 		['pandas column', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'select', accessor: '', select: "['A', 'C']" } }],
 		['pandas mask', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'select', select: "df['A'] > 2, 'B'" } }],
+		...['', '[0]', '[:, 1]', '[:, ::2]', '[::-1]', '.T', '.reshape(3, 2)', '.ravel()', '.flatten()', '[[0, 1]]', '[a > 2]', '.copy()', '.T.ravel()', '[:, 1].copy()'].flatMap(
+			(suffix): [string, Partial<Settings>][] => [
+				[`views b = a${suffix}`, { tool: 'views', views: { suffix, write: false } }],
+				[`views b = a${suffix} + write`, { tool: 'views', views: { suffix, write: true } }]
+			]
+		),
+		['views 3-D expr', { tool: 'views', views: { suffix: '[..., 0]', write: true }, source: { mode: 'expr', expr: 'np.arange(24).reshape(2, 3, 4)', text: '', dtype: '' } }],
+		...(['concatenate', 'stack'] as const).flatMap((op): [string, Partial<Settings>][] =>
+			[0, 1, -1].map((axis) => [`combine ${op} axis ${axis}`, { tool: 'combine', combine: { op, b: '7 8 9\n10 11 12', axis, parts: 2 } }])
+		),
+		['combine stack axis 2', { tool: 'combine', combine: { op: 'stack', b: '7 8 9\n10 11 12', axis: 2, parts: 2 } }],
+		['combine split 3 along axis 1', { tool: 'combine', combine: { op: 'split', b: '', axis: 1, parts: 3 } }],
+		['combine split 2 along axis 0', { tool: 'combine', combine: { op: 'split', b: '', axis: 0, parts: 2 } }],
 		['pandas fill', { tool: 'pandas', pandas: { ...DEFAULT_SETTINGS.pandas, view: 'align', fill: true, op: '*' } }]
 	];
 	for (const [label, patch] of variants) {
@@ -204,13 +222,17 @@ describe('every lesson step and task runs under real NumPy', async () => {
 		'An impossible shape: (5, 3)',
 		'Creating (not converting) an out-of-range value raises an error',
 		'Incompatible shapes',
-		'A label that does not exist'
+		'A label that does not exist',
+		'The same row beside a: axis=1',
+		'A 1-D b: shape (3,)',
+		'Different shapes cannot be stacked',
+		'4 pieces do not fit into 6 columns'
 	];
 
 	function applyPatch(s: Settings, p: Patch): Settings {
 		const n = structuredClone(s);
 		if (p.tool) n.tool = p.tool;
-		for (const k of ['source', 'axis', 'index', 'reshape', 'broadcast', 'vectorize', 'dtype', 'torch', 'pandas'] as const) {
+		for (const k of ['source', 'axis', 'index', 'reshape', 'broadcast', 'vectorize', 'dtype', 'views', 'combine', 'torch', 'pandas'] as const) {
 			if (p[k]) Object.assign(n[k], p[k]);
 		}
 		if (p.autograd) {
@@ -374,5 +396,99 @@ describe('pandas (real pandas 3 in Pyodide)', async () => {
 		expect((r.targets.positional as ArrayInfo).values).toEqual(['11', '22', '33']);
 		const filled = runPandas({ view: 'align', fill: true });
 		expect((filled.targets.result as FrameInfo).values).toEqual(['1.0', '12.0', '23.0', '30.0']);
+	});
+});
+
+describe('view vs copy follows NumPy', async () => {
+	const { buildSpec } = await import('../lab/codegen');
+	const { DEFAULT_SETTINGS } = await import('../lab/types');
+	const runViews = (suffix: string, write: boolean) => {
+		const spec = buildSpec({ ...structuredClone(DEFAULT_SETTINGS), tool: 'views', views: { suffix, write } });
+		return run({ code: spec.code, extra: spec.extra, targets: spec.targets, clear: spec.clear, namespace: 'views' });
+	};
+	const flag = (r: RunResult, name: string) => (r.targets[name] as ArrayInfo).values?.[0];
+
+	it('b = a is the same array; writing into b writes into a', () => {
+		const r = runViews('', true);
+		expect(flag(r, '__same')).toBe('True');
+		expect((r.targets.a as ArrayInfo).values).toEqual(['99', '99', '99', '99', '99', '99']);
+		expect((r.targets.__a0 as ArrayInfo).values).toEqual(['1', '2', '3', '4', '5', '6']);
+	});
+	it('a column slice is a view with a stride of one row', () => {
+		const r = runViews('[:, 1]', true);
+		expect(flag(r, '__shared')).toBe('True');
+		expect(flag(r, '__same')).toBe('False');
+		expect((r.targets.b as ArrayInfo).strides).toEqual([12]);
+		expect((r.targets.__src as ArrayInfo).values).toEqual(['1', '4']);
+		expect((r.targets.a as ArrayInfo).values).toEqual(['1', '99', '3', '4', '99', '6']);
+		expect((r.targets.__b0 as ArrayInfo).values).toEqual(['2', '5']);
+	});
+	for (const suffix of ['[[0, 1]]', '[a > 2]', '.flatten()', '.T.ravel()', '.copy()']) {
+		it(`a${suffix} is a copy; a is unchanged after the write`, () => {
+			const r = runViews(suffix, true);
+			expect(r.error).toBeNull();
+			expect(flag(r, '__shared')).toBe('False');
+			expect((r.targets.a as ArrayInfo).values).toEqual(['1', '2', '3', '4', '5', '6']);
+		});
+	}
+	it('the mask provenance uses the values from before the write', () => {
+		const r = runViews('[a > 2]', true);
+		expect((r.targets.__src as ArrayInfo).values).toEqual(['2', '3', '4', '5']);
+	});
+	it('a single element is a scalar and cannot be written into', () => {
+		const r = runViews('[0, 1]', true);
+		expect(r.error?.type).toBe('TypeError');
+	});
+});
+
+describe('combining arrays follows NumPy', async () => {
+	const { buildSpec } = await import('../lab/codegen');
+	const { DEFAULT_SETTINGS } = await import('../lab/types');
+	const { concatenatePlan, stackPlan } = await import('../array/combine');
+	type Combine = typeof DEFAULT_SETTINGS.combine;
+	const runCombine = (combine: Partial<Combine>, text = '1 2 3\n4 5 6') => {
+		const spec = buildSpec({
+			...structuredClone(DEFAULT_SETTINGS),
+			tool: 'combine',
+			source: { mode: 'literal', text, dtype: '', expr: '' },
+			combine: { ...DEFAULT_SETTINGS.combine, ...combine }
+		});
+		return run({ code: spec.code, extra: spec.extra, targets: spec.targets, clear: spec.clear, namespace: 'combine' });
+	};
+	const cases: [Partial<Combine>, string][] = [
+		[{ op: 'concatenate', b: '7 8 9\n10 11 12', axis: 0 }, 'concatenate'],
+		[{ op: 'concatenate', b: '7 8 9\n10 11 12', axis: 1 }, 'concatenate'],
+		[{ op: 'concatenate', b: '[[7, 8, 9]]', axis: 0 }, 'concatenate'],
+		[{ op: 'concatenate', b: '[[7, 8, 9]]', axis: 1 }, 'concatenate'],
+		[{ op: 'concatenate', b: '7 8 9', axis: 0 }, 'concatenate'],
+		[{ op: 'stack', b: '7 8 9\n10 11 12', axis: 0 }, 'stack'],
+		[{ op: 'stack', b: '7 8 9\n10 11 12', axis: 2 }, 'stack'],
+		[{ op: 'stack', b: '7 8 9\n10 11 12', axis: -1 }, 'stack'],
+		[{ op: 'stack', b: '[[7, 8, 9]]', axis: 0 }, 'stack']
+	];
+	for (const [combine, op] of cases) {
+		it(`the shape table predicts NumPy: ${op} b=${JSON.stringify(combine.b)} axis=${combine.axis}`, () => {
+			const r = runCombine(combine);
+			const a = r.targets.a as ArrayInfo;
+			const b = r.targets.b as ArrayInfo;
+			const plan = op === 'stack' ? stackPlan(a.shape, b.shape, combine.axis!) : concatenatePlan(a.shape, b.shape, combine.axis!);
+			if (plan.shape) {
+				expect(r.error).toBeNull();
+				expect((r.targets.result as ArrayInfo).shape).toEqual(plan.shape);
+			} else {
+				expect(r.error?.type).toBe('ValueError');
+			}
+		});
+	}
+	it('marks where each result element came from', () => {
+		const r = runCombine({ op: 'concatenate', b: '7 8 9\n10 11 12', axis: 1 });
+		expect((r.targets.__src as ArrayInfo).values).toEqual(['0', '1', '2', '6', '7', '8', '3', '4', '5', '9', '10', '11']);
+	});
+	it('split pieces are views, labeled by piece', () => {
+		const r = runCombine({ op: 'split', axis: 1, parts: 3 }, '1 2 3 4 5 6\n7 8 9 10 11 12');
+		expect(r.error).toBeNull();
+		expect((r.targets.__views as ArrayInfo).values).toEqual(['True', 'True', 'True']);
+		expect((r.targets.__part as ArrayInfo).values).toEqual(['0', '0', '1', '1', '2', '2', '0', '0', '1', '1', '2', '2']);
+		expect((r.targets.__p2 as ArrayInfo).values).toEqual(['5', '6', '11', '12']);
 	});
 });

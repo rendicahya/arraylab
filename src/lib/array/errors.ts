@@ -160,6 +160,58 @@ export function explainError(err: PythonError): Explanation {
 		};
 	}
 
+	// ---- combining arrays ----
+	m = message.match(/must have same number of dimensions, but the array at index (\d+) has (\d+) dimension\(s\) and the array at index (\d+) has (\d+) dimension\(s\)/);
+	if (m) {
+		return {
+			title: `A ${m[2]}-D and a ${m[4]}-D array cannot be concatenated.`,
+			details: [
+				'np.concatenate joins along an axis both arrays already have, so they need the same number of axes.',
+				`Array ${m[1]} has ${m[2]} axes, array ${m[3]} has ${m[4]}.`
+			],
+			hint: 'Give the smaller one the missing axis: b[np.newaxis] makes a 1-D row 2-D (shape (1, n)); b[:, np.newaxis] makes it a column (n, 1).'
+		};
+	}
+
+	m = message.match(/all the input array dimensions except for the concatenation axis must match exactly, but along dimension (\d+), the array at index (\d+) has size (\d+) and the array at index (\d+) has size (\d+)/);
+	if (m) {
+		return {
+			title: `The arrays do not fit together along axis ${m[1]}.`,
+			details: [
+				'Only the axis you concatenate along may have different sizes; every other axis must match exactly.',
+				`Along axis ${m[1]}: ${m[3]} vs ${m[5]}.`
+			],
+			hint: `Concatenate along axis ${m[1]} instead, or change the shape of one array.`
+		};
+	}
+
+	if (/all input arrays must have the same shape/.test(message)) {
+		return {
+			title: 'np.stack needs arrays of exactly the same shape.',
+			details: ['stack puts the arrays side by side along a new axis: each one becomes one slice, so all slices must have the same shape.'],
+			hint: 'To join arrays whose sizes differ along one axis, use np.concatenate along that axis.'
+		};
+	}
+
+	if (/array split does not result in an equal division/.test(message)) {
+		return {
+			title: 'np.split cannot cut this axis into equal pieces.',
+			details: ['np.split(a, n, axis=k) needs the length of axis k to be divisible by n.'],
+			hint: 'Choose a number that divides the axis length, or use np.array_split, which allows pieces of different sizes.'
+		};
+	}
+
+	m = message.match(/'(numpy\.\w+)' object does not support item assignment/);
+	if (m) {
+		return {
+			title: `A single element (${m[1]}) cannot be written into.`,
+			details: [
+				'An integer for every axis gives a NumPy scalar: its value is copied out of the array. It is not a view, so there is nothing to write back into.'
+			],
+			hint: 'To change the element in the array itself, assign through the array: a[0, 1] = 99.'
+		};
+	}
+
 	// ---- pandas ----
 	m = message.match(/Shape of passed values is \((\d+), (\d+)\), indices imply \((\d+), (\d+)\)/);
 	if (m) {

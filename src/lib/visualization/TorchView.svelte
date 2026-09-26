@@ -165,7 +165,7 @@
 			</div>
 			<p><strong>Shares memory</strong> with <code>a</code>: change <code>a[0, 0]</code> and <code>t</code> changes too. dtype is kept:
 				{#if ready}<code>{a.dtype}</code> → <code>{torchDtypeOf(a.dtype)}</code>.{/if}</p>
-			<p class="muted small">Like a NumPy view (chapter 02): two names, one block of numbers.</p>
+			<p class="muted small">Like a NumPy view (chapter 08): two names, one block of numbers.</p>
 		</section>
 		<section class="card">
 			<h3><code>torch.tensor(data)</code></h3>

@@ -107,3 +107,43 @@ describe('explainError', () => {
 		);
 	});
 });
+
+describe('view vs copy explanations', async () => {
+	const { copyReason, strideSteps } = await import('./views');
+	const { VIEW_SUFFIX } = await import('../lab/codegen');
+	it('names the rule behind a copy', () => {
+		expect(copyReason('[a > 2]')).toMatch(/boolean mask/);
+		expect(copyReason('[[0, 1]]')).toMatch(/list/);
+		expect(copyReason('[:, [0, 2]]')).toMatch(/list/);
+		expect(copyReason('.flatten()')).toMatch(/flatten/);
+		expect(copyReason('.T.ravel()')).toMatch(/not in memory order/);
+		expect(copyReason('[:, 1].copy()')).toMatch(/copy\(\)/);
+		expect(copyReason('.astype(float)')).toMatch(/dtype/);
+	});
+	it('describes strides in elements', () => {
+		expect(strideSteps([12], 4)).toEqual(['+12 bytes = 3 elements forward']);
+		expect(strideSteps([-12, 4], 4)).toEqual(['−12 bytes = 3 elements backward', '+4 bytes = 1 element forward']);
+	});
+	it('accepts only index or attribute suffixes', () => {
+		for (const ok of ['', '[0]', '[:, 1].copy()', '.T', '.reshape(3, 2)']) expect(VIEW_SUFFIX.test(ok), ok).toBe(true);
+		for (const bad of ['+ 1', ' * 2', 'x', '; import os']) expect(VIEW_SUFFIX.test(bad), bad).toBe(false);
+	});
+});
+
+describe('concatenate / stack shape rules', async () => {
+	const { concatenatePlan, stackPlan } = await import('./combine');
+	it('adds sizes along the joined axis', () => {
+		expect(concatenatePlan([2, 3], [1, 3], 0).shape).toEqual([3, 3]);
+		expect(concatenatePlan([2, 3], [2, 1], -1).shape).toEqual([2, 4]);
+	});
+	it('refuses mismatches and different ndim', () => {
+		expect(concatenatePlan([2, 3], [1, 3], 1).shape).toBeNull();
+		expect(concatenatePlan([2, 3], [3], 0).problem).toMatch(/same number of axes/);
+	});
+	it('stack inserts a new axis of length 2', () => {
+		expect(stackPlan([2, 3], [2, 3], 0).shape).toEqual([2, 2, 3]);
+		expect(stackPlan([2, 3], [2, 3], 2).shape).toEqual([2, 3, 2]);
+		expect(stackPlan([2, 3], [2, 3], -1).shape).toEqual([2, 3, 2]);
+		expect(stackPlan([2, 3], [1, 3], 0).shape).toBeNull();
+	});
+});

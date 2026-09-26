@@ -60,6 +60,8 @@ export class Lab {
 		if (patch.broadcast) Object.assign(s.broadcast, patch.broadcast);
 		if (patch.vectorize) Object.assign(s.vectorize, patch.vectorize);
 		if (patch.dtype) Object.assign(s.dtype, patch.dtype);
+		if (patch.views) Object.assign(s.views, patch.views);
+		if (patch.combine) Object.assign(s.combine, patch.combine);
 		if (patch.torch) Object.assign(s.torch, patch.torch);
 		if (patch.pandas) Object.assign(s.pandas, patch.pandas);
 		if (patch.autograd) {

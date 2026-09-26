@@ -10,6 +10,8 @@
 	import BroadcastView from '../visualization/BroadcastView.svelte';
 	import VectorizeView from '../visualization/VectorizeView.svelte';
 	import DtypeView from '../visualization/DtypeView.svelte';
+	import ViewsView from '../visualization/ViewsView.svelte';
+	import CombineView from '../visualization/CombineView.svelte';
 	import CodeResultView from '../visualization/CodeResultView.svelte';
 	import TorchView from '../visualization/TorchView.svelte';
 	import AutogradView from '../visualization/AutogradView.svelte';
@@ -146,6 +148,8 @@
 			{:else if tool === 'broadcast'}<BroadcastView {lab} />
 			{:else if tool === 'vectorize'}<VectorizeView {lab} />
 			{:else if tool === 'dtype'}<DtypeView {lab} />
+			{:else if tool === 'views'}<ViewsView {lab} />
+			{:else if tool === 'combine'}<CombineView {lab} />
 			{:else if tool === 'torch'}<TorchView {lab} />
 			{:else if tool === 'autograd'}<AutogradView {lab} />
 			{:else if tool === 'pandas'}<PandasView {lab} />
