@@ -1,0 +1,637 @@
+{
+	"torch": "2.14.0",
+	"numpy": "2.5.2",
+	"tensorFromList": {
+		"int": "torch.int64",
+		"float": "torch.float32",
+		"bool": "torch.bool",
+		"complex": "torch.complex64",
+		"mixedIntFloat": "torch.float32"
+	},
+	"numpyFromList": {
+		"float": "float64",
+		"complex": "complex128"
+	},
+	"fromNumpy": {
+		"bool": "torch.bool",
+		"int8": "torch.int8",
+		"uint8": "torch.uint8",
+		"int16": "torch.int16",
+		"int32": "torch.int32",
+		"int64": "torch.int64",
+		"float16": "torch.float16",
+		"float32": "torch.float32",
+		"float64": "torch.float64",
+		"complex128": "torch.complex128"
+	},
+	"tensorOfArray": {
+		"bool": "torch.bool",
+		"int8": "torch.int8",
+		"uint8": "torch.uint8",
+		"int16": "torch.int16",
+		"int32": "torch.int32",
+		"int64": "torch.int64",
+		"float16": "torch.float16",
+		"float32": "torch.float32",
+		"float64": "torch.float64",
+		"complex128": "torch.complex128"
+	},
+	"elementSize": {
+		"torch.bool": 1,
+		"torch.int8": 1,
+		"torch.uint8": 1,
+		"torch.int16": 2,
+		"torch.int32": 4,
+		"torch.int64": 8,
+		"torch.float16": 2,
+		"torch.float32": 4,
+		"torch.float64": 8,
+		"torch.complex128": 16
+	},
+	"ops": {
+		"sum0": {
+			"numpy": "a.sum(axis=0)",
+			"torch": "t.sum(dim=0)",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.int64"
+				},
+				"torch.int8": {
+					"dtype": "torch.int64"
+				},
+				"torch.uint8": {
+					"dtype": "torch.int64"
+				},
+				"torch.int16": {
+					"dtype": "torch.int64"
+				},
+				"torch.int32": {
+					"dtype": "torch.int64"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"sum": {
+			"numpy": "a.sum()",
+			"torch": "t.sum()",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.int64"
+				},
+				"torch.int8": {
+					"dtype": "torch.int64"
+				},
+				"torch.uint8": {
+					"dtype": "torch.int64"
+				},
+				"torch.int16": {
+					"dtype": "torch.int64"
+				},
+				"torch.int32": {
+					"dtype": "torch.int64"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"mean": {
+			"numpy": "a.mean()",
+			"torch": "t.mean()",
+			"byDtype": {
+				"torch.bool": {
+					"error": "RuntimeError: mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Bool"
+				},
+				"torch.int8": {
+					"error": "RuntimeError: mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Char"
+				},
+				"torch.uint8": {
+					"error": "RuntimeError: mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Byte"
+				},
+				"torch.int16": {
+					"error": "RuntimeError: mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Short"
+				},
+				"torch.int32": {
+					"error": "RuntimeError: mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Int"
+				},
+				"torch.int64": {
+					"error": "RuntimeError: mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Long"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"max": {
+			"numpy": "a.max()",
+			"torch": "t.max()",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.bool"
+				},
+				"torch.int8": {
+					"dtype": "torch.int8"
+				},
+				"torch.uint8": {
+					"dtype": "torch.uint8"
+				},
+				"torch.int16": {
+					"dtype": "torch.int16"
+				},
+				"torch.int32": {
+					"dtype": "torch.int32"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"error": "NotImplementedError: \"max_all\" not implemented for 'ComplexDouble'"
+				}
+			}
+		},
+		"double": {
+			"numpy": "a * 2",
+			"torch": "t * 2",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.int64"
+				},
+				"torch.int8": {
+					"dtype": "torch.int8"
+				},
+				"torch.uint8": {
+					"dtype": "torch.uint8"
+				},
+				"torch.int16": {
+					"dtype": "torch.int16"
+				},
+				"torch.int32": {
+					"dtype": "torch.int32"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"half": {
+			"numpy": "a / 2",
+			"torch": "t / 2",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.float32"
+				},
+				"torch.int8": {
+					"dtype": "torch.float32"
+				},
+				"torch.uint8": {
+					"dtype": "torch.float32"
+				},
+				"torch.int16": {
+					"dtype": "torch.float32"
+				},
+				"torch.int32": {
+					"dtype": "torch.float32"
+				},
+				"torch.int64": {
+					"dtype": "torch.float32"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"sqrt": {
+			"numpy": "np.sqrt(a)",
+			"torch": "torch.sqrt(t)",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.float32"
+				},
+				"torch.int8": {
+					"dtype": "torch.float32"
+				},
+				"torch.uint8": {
+					"dtype": "torch.float32"
+				},
+				"torch.int16": {
+					"dtype": "torch.float32"
+				},
+				"torch.int32": {
+					"dtype": "torch.float32"
+				},
+				"torch.int64": {
+					"dtype": "torch.float32"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"row0": {
+			"numpy": "a[0]",
+			"torch": "t[0]",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.bool"
+				},
+				"torch.int8": {
+					"dtype": "torch.int8"
+				},
+				"torch.uint8": {
+					"dtype": "torch.uint8"
+				},
+				"torch.int16": {
+					"dtype": "torch.int16"
+				},
+				"torch.int32": {
+					"dtype": "torch.int32"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"flat": {
+			"numpy": "a.reshape(-1)",
+			"torch": "t.reshape(-1)",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.bool"
+				},
+				"torch.int8": {
+					"dtype": "torch.int8"
+				},
+				"torch.uint8": {
+					"dtype": "torch.uint8"
+				},
+				"torch.int16": {
+					"dtype": "torch.int16"
+				},
+				"torch.int32": {
+					"dtype": "torch.int32"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"unsqueeze": {
+			"numpy": "np.expand_dims(a, 0)",
+			"torch": "t.unsqueeze(0)",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.bool"
+				},
+				"torch.int8": {
+					"dtype": "torch.int8"
+				},
+				"torch.uint8": {
+					"dtype": "torch.uint8"
+				},
+				"torch.int16": {
+					"dtype": "torch.int16"
+				},
+				"torch.int32": {
+					"dtype": "torch.int32"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"float32": {
+			"numpy": "a.astype(np.float32)",
+			"torch": "t.to(torch.float32)",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.float32"
+				},
+				"torch.int8": {
+					"dtype": "torch.float32"
+				},
+				"torch.uint8": {
+					"dtype": "torch.float32"
+				},
+				"torch.int16": {
+					"dtype": "torch.float32"
+				},
+				"torch.int32": {
+					"dtype": "torch.float32"
+				},
+				"torch.int64": {
+					"dtype": "torch.float32"
+				},
+				"torch.float16": {
+					"dtype": "torch.float32"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float32"
+				},
+				"torch.complex128": {
+					"dtype": "torch.float32"
+				}
+			}
+		},
+		"copy": {
+			"numpy": "a.copy()",
+			"torch": "t.clone()",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.bool"
+				},
+				"torch.int8": {
+					"dtype": "torch.int8"
+				},
+				"torch.uint8": {
+					"dtype": "torch.uint8"
+				},
+				"torch.int16": {
+					"dtype": "torch.int16"
+				},
+				"torch.int32": {
+					"dtype": "torch.int32"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		},
+		"concat": {
+			"numpy": "np.concatenate([a, a])",
+			"torch": "torch.cat([t, t])",
+			"byDtype": {
+				"torch.bool": {
+					"dtype": "torch.bool"
+				},
+				"torch.int8": {
+					"dtype": "torch.int8"
+				},
+				"torch.uint8": {
+					"dtype": "torch.uint8"
+				},
+				"torch.int16": {
+					"dtype": "torch.int16"
+				},
+				"torch.int32": {
+					"dtype": "torch.int32"
+				},
+				"torch.int64": {
+					"dtype": "torch.int64"
+				},
+				"torch.float16": {
+					"dtype": "torch.float16"
+				},
+				"torch.float32": {
+					"dtype": "torch.float32"
+				},
+				"torch.float64": {
+					"dtype": "torch.float64"
+				},
+				"torch.complex128": {
+					"dtype": "torch.complex128"
+				}
+			}
+		}
+	},
+	"create": {
+		"zeros": {
+			"torch": "torch.zeros(2, 3)",
+			"dtype": "torch.float32",
+			"shape": [
+				2,
+				3
+			],
+			"numpy": "np.zeros((2, 3))",
+			"numpyDtype": "float64"
+		},
+		"ones": {
+			"torch": "torch.ones(2, 3)",
+			"dtype": "torch.float32",
+			"shape": [
+				2,
+				3
+			],
+			"numpy": "np.ones((2, 3))",
+			"numpyDtype": "float64"
+		},
+		"full": {
+			"torch": "torch.full((2, 3), 7)",
+			"dtype": "torch.int64",
+			"shape": [
+				2,
+				3
+			],
+			"numpy": "np.full((2, 3), 7)",
+			"numpyDtype": "int64"
+		},
+		"arange": {
+			"torch": "torch.arange(12).reshape(3, 4)",
+			"dtype": "torch.int64",
+			"shape": [
+				3,
+				4
+			],
+			"numpy": "np.arange(12).reshape(3, 4)",
+			"numpyDtype": "int64"
+		},
+		"linspace": {
+			"torch": "torch.linspace(0, 1, 5)",
+			"dtype": "torch.float32",
+			"shape": [
+				5
+			],
+			"numpy": "np.linspace(0, 1, 5)",
+			"numpyDtype": "float64"
+		},
+		"eye": {
+			"torch": "torch.eye(3)",
+			"dtype": "torch.float32",
+			"shape": [
+				3,
+				3
+			],
+			"numpy": "np.eye(3)",
+			"numpyDtype": "float64"
+		},
+		"rand": {
+			"torch": "torch.rand(2, 3)",
+			"dtype": "torch.float32",
+			"shape": [
+				2,
+				3
+			],
+			"numpy": "np.random.default_rng(0).random((2, 3))",
+			"numpyDtype": "float64"
+		},
+		"randint": {
+			"torch": "torch.randint(0, 10, (3, 4))",
+			"dtype": "torch.int64",
+			"shape": [
+				3,
+				4
+			],
+			"numpy": "np.random.default_rng(0).integers(0, 10, size=(3, 4))",
+			"numpyDtype": "int64"
+		}
+	},
+	"tensorFacts": {
+		"shapeRepr": "torch.Size([2, 3])",
+		"sizeIsTuple": true,
+		"size1": 3,
+		"defaultDevice": "cpu",
+		"defaultFloat": "torch.float32",
+		"requiresGrad": false,
+		"isLeaf": true,
+		"gradFn": "None",
+		"dim": 2,
+		"len": 2
+	},
+	"autograd": {
+		"gradFn": {
+			"mul": "MulBackward0",
+			"add": "AddBackward0",
+			"sub": "SubBackward0",
+			"pow": "PowBackward0"
+		},
+		"example": {
+			"loss": 9.0,
+			"w.grad": -12.0,
+			"b.grad": -6.0,
+			"x.grad": "None"
+		},
+		"leafGradFn": "None",
+		"lossRepr": "tensor(9., grad_fn=<PowBackward0>)",
+		"accumulated": {
+			"w.grad": -24.0,
+			"b.grad": -12.0
+		},
+		"secondBackward": "RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed). Saved intermediate values of the graph are freed when you call .backward() or autograd.grad(). Specify retain_graph=True if you need to backward through the graph a second time or if you need to access saved tensors after calling backward.",
+		"noGrad": "RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn",
+		"numpyOfGrad": "RuntimeError: Can't call numpy() on Tensor that requires grad. Use tensor.detach().numpy() instead."
+	}
+}

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import ChapterView from '$lib/components/ChapterView.svelte';
-	import PhaseTwo from '$lib/components/PhaseTwo.svelte';
 
 	let { data } = $props();
 	const chapter = $derived(data.chapter);
@@ -12,9 +11,5 @@
 </svelte:head>
 
 {#key chapter.slug}
-	{#if chapter.phase === 'torch'}
-		<PhaseTwo {chapter} />
-	{:else}
-		<ChapterView {chapter} />
-	{/if}
+	<ChapterView {chapter} />
 {/key}

@@ -57,14 +57,14 @@
 		<h2 id="chapters-title">Chapters</h2>
 		<ol>
 			{#each chapters as c (c.slug)}
-				<li class:soon={c.phase === 'torch'}>
+				<li>
 					<a href={chapterHref(c.slug)}>
 						<span class="num mono">{c.number}</span>
 						<span class="text">
 							<strong>{c.title}</strong>
 							<span class="muted">{c.summary}</span>
 						</span>
-						{#if c.phase === 'torch'}<span class="soon-tag">PyTorch · later</span>{/if}
+						{#if c.phase === 'torch'}<span class="torch-tag" title="PyTorch code is shown next to live NumPy; run it in Colab">PyTorch</span>{/if}
 					</a>
 				</li>
 			{/each}
@@ -211,14 +211,7 @@
 	.text .muted {
 		font-size: 0.84rem;
 	}
-	.soon a {
-		background: transparent;
-		border-style: dashed;
-	}
-	.soon .num {
-		color: var(--subtle);
-	}
-	.soon-tag {
+	.torch-tag {
 		position: absolute;
 		top: 0.5rem;
 		right: 0.6rem;

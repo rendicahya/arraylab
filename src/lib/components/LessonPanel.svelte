@@ -36,7 +36,7 @@
 			aria-label="Choose chapter"
 		>
 			{#each chapters as c (c.slug)}
-				<option value={c.slug}>{c.number} — {c.title}{c.phase === 'torch' ? ' (coming)' : ''}</option>
+				<option value={c.slug}>{c.number} — {c.title}</option>
 			{/each}
 		</select>
 	</label>

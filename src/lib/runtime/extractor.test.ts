@@ -122,6 +122,7 @@ describe('error explanations match real NumPy messages', async () => {
 
 describe('every tool generates code that NumPy runs', async () => {
 	const { buildSpec, benchmarkCode, VECTOR_OPS, DTYPES } = await import('../lab/codegen');
+	const { TORCH_OPS } = await import('../torch/translate');
 	const { DEFAULT_SETTINGS } = await import('../lab/types');
 	type Settings = typeof DEFAULT_SETTINGS;
 	const variants: [string, Partial<Settings>][] = [
@@ -142,7 +143,13 @@ describe('every tool generates code that NumPy runs', async () => {
 		['broadcast column', { tool: 'broadcast', broadcast: { b: '10\n20', op: '+' } }],
 		['3-D source', { tool: 'axis', source: { mode: 'expr', expr: 'np.arange(24).reshape(2, 3, 4)', text: '', dtype: '' } }],
 		...VECTOR_OPS.map((op): [string, Partial<Settings>] => [`vectorize ${op.id}`, { tool: 'vectorize', vectorize: { op: op.id } }]),
-		...DTYPES.map((t): [string, Partial<Settings>] => [`dtype ${t}`, { tool: 'dtype', dtype: { target: t } }])
+		...DTYPES.map((t): [string, Partial<Settings>] => [`dtype ${t}`, { tool: 'dtype', dtype: { target: t } }]),
+		...(['tensor', 'convert', 'create', 'device'] as const).map((view): [string, Partial<Settings>] => [
+			`torch ${view}`,
+			{ tool: 'torch', torch: { view, op: 'sum0', focus: null } }
+		]),
+		...TORCH_OPS.map((op): [string, Partial<Settings>] => [`torch op ${op.id}`, { tool: 'torch', torch: { view: 'ops', op: op.id, focus: null } }]),
+		['autograd', { tool: 'autograd' }]
 	];
 	for (const [label, patch] of variants) {
 		it(label, () => {
@@ -188,8 +195,14 @@ describe('every lesson step and task runs under real NumPy', async () => {
 	function applyPatch(s: Settings, p: Patch): Settings {
 		const n = structuredClone(s);
 		if (p.tool) n.tool = p.tool;
-		for (const k of ['source', 'axis', 'index', 'reshape', 'broadcast', 'vectorize', 'dtype'] as const) {
+		for (const k of ['source', 'axis', 'index', 'reshape', 'broadcast', 'vectorize', 'dtype', 'torch'] as const) {
 			if (p[k]) Object.assign(n[k], p[k]);
+		}
+		if (p.autograd) {
+			const { values, requiresGrad, ...rest } = p.autograd;
+			Object.assign(n.autograd.values, values);
+			Object.assign(n.autograd.requiresGrad, requiresGrad);
+			Object.assign(n.autograd, rest);
 		}
 		return n;
 	}
@@ -208,7 +221,7 @@ describe('every lesson step and task runs under real NumPy', async () => {
 		else expect(r.error, `${label}: ${r.error?.message}`).toBeNull();
 	}
 
-	for (const chapter of chapters.filter((c) => c.phase === 'numpy')) {
+	for (const chapter of chapters) {
 		for (const step of chapter.steps) {
 			it(`${chapter.number} ${step.title}`, () => {
 				const base = applyPatch(structuredClone(DEFAULT_SETTINGS), step.patch);
@@ -219,4 +232,50 @@ describe('every lesson step and task runs under real NumPy', async () => {
 			});
 		}
 	}
+});
+
+describe('autograd tool matches real PyTorch gradients', async () => {
+	const { buildSpec } = await import('../lab/codegen');
+	const { DEFAULT_SETTINGS } = await import('../lab/types');
+	const { NODE_ORDER } = await import('../torch/autograd');
+	type Leaf = 'x' | 'w' | 'b' | 'y';
+	// Recorded with PyTorch 2.14 (loss.backward() on pred = w * x + b, loss = (pred - y) ** 2).
+	const cases: { values: Record<Leaf, number>; track: Record<Leaf, boolean>; loss: number; grads: Record<Leaf, number | null> }[] = [
+		{ values: { x: 2, w: 3, b: 1, y: 10 }, track: { x: false, w: true, b: true, y: false }, loss: 9, grads: { x: null, w: -12, b: -6, y: null } },
+		{ values: { x: 5, w: -1.5, b: 0.25, y: 3 }, track: { x: true, w: true, b: true, y: true }, loss: 105.0625, grads: { x: 30.75, w: -102.5, b: -20.5, y: 20.5 } },
+		{ values: { x: 0.1, w: 2, b: -3, y: 7.5 }, track: { x: true, w: false, b: false, y: true }, loss: 106.09000396728516, grads: { x: -41.20000076293945, w: null, b: null, y: 20.600000381469727 } }
+	];
+	for (const c of cases) {
+		it(JSON.stringify(c.values), () => {
+			const spec = buildSpec({ ...structuredClone(DEFAULT_SETTINGS), tool: 'autograd', autograd: { values: c.values, requiresGrad: c.track, phase: 'backward', lr: 0.05 } });
+			const r = run({ code: spec.code, extra: spec.extra, targets: spec.targets, clear: spec.clear, namespace: 'autograd' });
+			expect(r.error).toBeNull();
+			const fwd = (r.targets.__fwd as ArrayInfo).values!;
+			const grad = (r.targets.__grad as ArrayInfo).values!;
+			expect(Number(fwd[NODE_ORDER.indexOf('loss')])).toBeCloseTo(c.loss, 3);
+			for (const leaf of ['x', 'w', 'b', 'y'] as Leaf[]) {
+				const g = grad[NODE_ORDER.indexOf(leaf)];
+				if (c.grads[leaf] === null) expect(g).toBe('nan');
+				else expect(Number(g)).toBeCloseTo(c.grads[leaf]!, 3);
+			}
+		});
+	}
+	it('a gradient step with lr = 0.05 lowers the loss 9 → 2.25 (as in PyTorch)', () => {
+		const spec = buildSpec({ ...structuredClone(DEFAULT_SETTINGS), tool: 'autograd' });
+		const r = run({ code: spec.code, extra: spec.extra, targets: spec.targets, clear: spec.clear, namespace: 'autograd' });
+		const step = (r.targets.__step as ArrayInfo).values!;
+		expect(step.slice(0, 4)).toEqual(['2.0', '3.6', '1.3', '10.0']);
+		expect(Number(step[4])).toBeCloseTo(2.25, 4);
+	});
+	it('with nothing tracked there is no backward pass', () => {
+		const spec = buildSpec({
+			...structuredClone(DEFAULT_SETTINGS),
+			tool: 'autograd',
+			autograd: { ...DEFAULT_SETTINGS.autograd, requiresGrad: { x: false, w: false, b: false, y: false } }
+		});
+		expect(spec.code).not.toContain('grad_loss');
+		const r = run({ code: spec.code, extra: spec.extra, targets: spec.targets, clear: spec.clear, namespace: 'autograd' });
+		expect(r.error).toBeNull();
+		expect((r.targets.__grad as ArrayInfo).values!.every((v) => v === 'nan')).toBe(true);
+	});
 });

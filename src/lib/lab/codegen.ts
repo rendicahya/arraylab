@@ -6,6 +6,8 @@
  */
 import { literalToCode, parseLiteral } from '../array/literal';
 import type { LabSettings, ReduceFn, ToolId, VectorOpId } from './types';
+import { torchOp } from '../torch/translate';
+import { AUTOGRAD_NAMES, AUTOGRAD_TARGETS, autogradCode, autogradInputError } from '../torch/autograd';
 
 export type RunSpec = {
 	tool: ToolId;
@@ -111,6 +113,12 @@ export function buildSpec(settings: LabSettings): RunSpec {
 	const tool = settings.tool;
 	const clear = ['result', 'b', 'loop_result', 'vec_result', ...HELPERS];
 	if (tool === 'code') return { tool, skip: true, code: '', targets: [], clear: [] };
+	if (tool === 'autograd') {
+		const inputError = autogradInputError(settings.autograd);
+		const { code, extra } = autogradCode(settings.autograd);
+		if (inputError) return { tool, code, targets: [], clear: AUTOGRAD_NAMES, inputError };
+		return { tool, code, extra, targets: AUTOGRAD_TARGETS, clear: AUTOGRAD_NAMES };
+	}
 	const src = sourceCode(settings.source);
 	if (src.error) return { tool, code: '', targets: [], clear, inputError: src.error };
 	const lines = [src.code];
@@ -184,6 +192,16 @@ export function buildSpec(settings: LabSettings): RunSpec {
 				'np.array_equal(loop_result, vec_result)'
 			);
 			targets = ['a', 'loop_result', 'vec_result'];
+			break;
+		}
+
+		case 'torch': {
+			if (settings.torch.view === 'ops') {
+				lines.push('', `result = ${torchOp(settings.torch.op).numpy}`, 'result');
+			} else {
+				lines.push('', 'a');
+				targets = ['a'];
+			}
 			break;
 		}
 

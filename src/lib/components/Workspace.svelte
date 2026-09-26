@@ -11,6 +11,8 @@
 	import VectorizeView from '../visualization/VectorizeView.svelte';
 	import DtypeView from '../visualization/DtypeView.svelte';
 	import CodeResultView from '../visualization/CodeResultView.svelte';
+	import TorchView from '../visualization/TorchView.svelte';
+	import AutogradView from '../visualization/AutogradView.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import { TOOLS } from '../lab/types';
 	import type { ArrayInfo } from '../array/types';
@@ -30,6 +32,10 @@
 	const inspected = $derived.by((): { name: string; info: ArrayInfo }[] => {
 		if (tool === 'code') return lab.scratchView ? [{ name: lab.scratchView.name ?? 'value', info: lab.scratchView }] : [];
 		const fresh = lab.resultFor(tool);
+		if (tool === 'autograd') {
+			const loss = fresh ? lab.target('loss') : null;
+			return loss ? [{ name: 'loss', info: loss }] : [];
+		}
 		const out: { name: string; info: ArrayInfo }[] = [];
 		const a = fresh ? lab.target('a') : lab.provisional;
 		if (a) out.push({ name: 'a', info: a });
@@ -48,7 +54,7 @@
 	{/if}
 
 	<section class="center" aria-label="Array lab">
-		{#if tool !== 'code'}
+		{#if tool !== 'code' && tool !== 'autograd'}
 			<div class="source-wrap"><SourceInput {lab} /></div>
 		{/if}
 		<div class="tool-tabs" role="tablist" aria-label="Tools">
@@ -70,6 +76,8 @@
 			{:else if tool === 'broadcast'}<BroadcastView {lab} />
 			{:else if tool === 'vectorize'}<VectorizeView {lab} />
 			{:else if tool === 'dtype'}<DtypeView {lab} />
+			{:else if tool === 'torch'}<TorchView {lab} />
+			{:else if tool === 'autograd'}<AutogradView {lab} />
 			{:else}<CodeResultView {lab} />{/if}
 		</div>
 	</section>
@@ -157,9 +165,9 @@
 		border: 1px solid var(--border);
 		background: var(--surface);
 		border-radius: 999px;
-		padding: 0.25rem 0.8rem;
+		padding: 0.25rem 0.68rem;
 		cursor: pointer;
-		font-size: 0.88rem;
+		font-size: 0.86rem;
 		color: var(--muted);
 		font-weight: 500;
 	}

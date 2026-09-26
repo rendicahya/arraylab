@@ -60,6 +60,13 @@ export class Lab {
 		if (patch.broadcast) Object.assign(s.broadcast, patch.broadcast);
 		if (patch.vectorize) Object.assign(s.vectorize, patch.vectorize);
 		if (patch.dtype) Object.assign(s.dtype, patch.dtype);
+		if (patch.torch) Object.assign(s.torch, patch.torch);
+		if (patch.autograd) {
+			const { values, requiresGrad, ...rest } = patch.autograd;
+			if (values) Object.assign(s.autograd.values, values);
+			if (requiresGrad) Object.assign(s.autograd.requiresGrad, requiresGrad);
+			Object.assign(s.autograd, rest);
+		}
 		if (patch.code !== undefined) {
 			this.scratchCode = patch.code;
 			this.scratchResult = null;
