@@ -3,6 +3,7 @@
 	import Workspace from '$lib/components/Workspace.svelte';
 	import { Lab } from '$lib/lab/lab.svelte';
 	import { decodeShare } from '$lib/lab/share';
+	import { t } from '$lib/i18n/strings';
 
 	const lab = new Lab('lab');
 
@@ -15,10 +16,10 @@
 </script>
 
 <svelte:head>
-	<title>Lab · ArrayLab</title>
+	<title>{t('labPage').title}</title>
 </svelte:head>
 
 <svelte:window onhashchange={openLink} />
 
-<h1 class="visually-hidden">ArrayLab — free lab</h1>
+<h1 class="visually-hidden">{t('labPage').hiddenH1}</h1>
 <Workspace {lab} />

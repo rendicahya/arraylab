@@ -2,6 +2,7 @@
 	import Icon from './Icon.svelte';
 	import { explainError } from '../array/errors';
 	import type { PyError } from '../runtime/protocol';
+	import { t } from '../i18n/strings';
 
 	let { error, diagram = true }: { error: PyError; diagram?: boolean } = $props();
 	const ex = $derived(explainError(error));
@@ -14,9 +15,9 @@
 	</div>
 	{#each ex.details as d, i (i)}<p>{d}</p>{/each}
 	{#if diagram && ex.diagram}<pre class="diagram">{ex.diagram}</pre>{/if}
-	{#if ex.hint}<p class="hint"><strong>Try:</strong> {ex.hint}</p>{/if}
+	{#if ex.hint}<p class="hint"><strong>{t('errorCard').try}</strong> {ex.hint}</p>{/if}
 	<details>
-		<summary>Original Python error</summary>
+		<summary>{t('errorCard').originalError}</summary>
 		<pre>{error.traceback || `${error.type}: ${error.message}`}</pre>
 	</details>
 </div>

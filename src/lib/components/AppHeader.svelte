@@ -3,15 +3,17 @@
 	import { resolve } from '$app/paths';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import FullscreenToggle from './FullscreenToggle.svelte';
+	import LangToggle from './LangToggle.svelte';
+	import { t } from '../i18n/strings';
 
-	const links = [
-		{ href: resolve('/learn/[slug]', { slug: 'ndarray' }) + '/', match: '/learn', label: 'Learn' },
-		{ href: resolve('/lab') + '/', match: '/lab', label: 'Lab' }
-	];
+	const links = $derived([
+		{ href: resolve('/learn/[slug]', { slug: 'ndarray' }) + '/', match: '/learn', label: t('header').learn },
+		{ href: resolve('/lab') + '/', match: '/lab', label: t('header').lab }
+	]);
 </script>
 
 <header class="app-header">
-	<a class="brand" href={resolve('/')} aria-label="ArrayLab home">
+	<a class="brand" href={resolve('/')} aria-label={t('header').home}>
 		<svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
 			<g fill="none" stroke="currentColor" stroke-width="2.4">
 				<rect x="5" y="5" width="9" height="9" rx="2" />
@@ -21,10 +23,10 @@
 			<rect x="18" y="18" width="9" height="9" rx="2" class="logo-hi" />
 		</svg>
 		<span class="name">Array<span class="lab">Lab</span></span>
-		<span class="tagline">Explore arrays. Understand tensors.</span>
+		<span class="tagline">{t('header').tagline}</span>
 	</a>
 
-	<nav aria-label="Main">
+	<nav aria-label={t('header').main}>
 		{#each links as link (link.label)}
 			<a
 				href={link.href}
@@ -34,6 +36,7 @@
 	</nav>
 
 	<div class="controls">
+		<LangToggle />
 		<ThemeToggle />
 		<FullscreenToggle />
 	</div>

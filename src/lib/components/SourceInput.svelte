@@ -2,6 +2,7 @@
 	import type { Lab } from '../lab/lab.svelte';
 	import { DTYPES } from '../lab/codegen';
 	import { formatShape } from '../array/normalize';
+	import { t } from '../i18n/strings';
 
 	/** Defines the array `a`: typed numbers (live) or a NumPy expression (applied on Enter). */
 	let { lab, compact = false }: { lab: Lab; compact?: boolean } = $props();
@@ -43,16 +44,16 @@
 <div class="source" class:compact>
 	<div class="head">
 		<span class="label mono">a =</span>
-		<span class="segmented" role="group" aria-label="How to create a">
-			<button type="button" aria-pressed={src.mode === 'literal'} onclick={() => (src.mode = 'literal')}>Type numbers</button>
-			<button type="button" aria-pressed={src.mode === 'expr'} onclick={() => (src.mode = 'expr')}>NumPy function</button>
+		<span class="segmented" role="group" aria-label={t('sourceInput').howToCreate}>
+			<button type="button" aria-pressed={src.mode === 'literal'} onclick={() => (src.mode = 'literal')}>{t('sourceInput').typeNumbers}</button>
+			<button type="button" aria-pressed={src.mode === 'expr'} onclick={() => (src.mode = 'expr')}>{t('sourceInput').numpyFunction}</button>
 		</span>
 		{#if src.mode === 'literal'}
 			<label class="dtype">
-				<span class="muted">dtype</span>
-				<select bind:value={src.dtype} aria-label="dtype for the typed numbers">
-					<option value="">auto (NumPy decides)</option>
-					{#each DTYPES as t (t)}<option value={t}>{t}</option>{/each}
+				<span class="muted">{t('sourceInput').dtype}</span>
+				<select bind:value={src.dtype} aria-label={t('sourceInput').dtypeAria}>
+					<option value="">{t('sourceInput').auto}</option>
+					{#each DTYPES as dt (dt)}<option value={dt}>{dt}</option>{/each}
 				</select>
 			</label>
 			{#if shape}<span class="shape mono" aria-live="polite">shape {formatShape(shape)}</span>{/if}
@@ -66,34 +67,32 @@
 				bind:value={src.text}
 				rows={Math.min(8, Math.max(2, src.text.split('\n').length))}
 				spellcheck="false"
-				aria-label="Numbers for array a"
+				aria-label={t('sourceInput').numbersAria}
 				aria-describedby="source-help"
 			></textarea>
 			<div class="side">
-				<div class="presets" role="group" aria-label="Example numbers">
-					<span class="eyebrow">Try</span>
+				<div class="presets" role="group" aria-label={t('sourceInput').exampleNumbers}>
+					<span class="eyebrow">{t('sourceInput').try}</span>
 					{#each LITERAL_PRESETS as p (p.label)}
 						<button
 							type="button"
 							class="chip"
 							aria-pressed={src.text === p.text}
 							title={p.text.replaceAll('\n', ' ⏎ ')}
-							onclick={() => (src.text = p.text)}>{p.label}</button
+							onclick={() => (src.text = p.text)}>{(t('sourceInput').presets as Record<string, string>)[p.label]}</button
 						>
 					{/each}
 				</div>
-				<p id="source-help" class="help">
-					Spaces or commas between values · new line = new row · blank line = new 2-D layer (3-D array).
-				</p>
+				<p id="source-help" class="help">{t('sourceInput').help}</p>
 			</div>
 		</div>
 	{:else}
 		<form class="expr" onsubmit={applyExpr}>
 			<span class="mono muted">a =</span>
-			<input class="mono" bind:value={exprDraft} spellcheck="false" aria-label="NumPy expression for a" />
-			<button class="btn" class:primary={exprDraft !== src.expr} type="submit">Run</button>
+			<input class="mono" bind:value={exprDraft} spellcheck="false" aria-label={t('sourceInput').exprAria} />
+			<button class="btn" class:primary={exprDraft !== src.expr} type="submit">{t('sourceInput').run}</button>
 		</form>
-		<div class="presets" role="group" aria-label="Example expressions">
+		<div class="presets" role="group" aria-label={t('sourceInput').exampleExpressions}>
 			{#each EXPR_PRESETS as p (p)}
 				<button type="button" class="chip mono" aria-pressed={src.expr === p} onclick={() => ((exprDraft = p), (src.expr = p))}>{p}</button>
 			{/each}

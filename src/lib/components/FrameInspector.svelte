@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { FrameInfo } from '../array/types';
 	import { formatBytes, formatCount, formatShape } from '../array/normalize';
+	import { t } from '../i18n/strings';
 
 	/** Property sheet for a DataFrame or Series: the attributes you would query in pandas. */
 	let { info, name = info.name ?? 'df' }: { info: FrameInfo; name?: string } = $props();
@@ -14,31 +15,31 @@
 	}
 
 	const rows = $derived.by(() => {
-		const out = [
-			{ key: 'shape', value: formatShape(info.shape), help: series ? 'Number of rows.' : '(rows, columns).' },
-			{ key: 'ndim', value: String(info.ndim), help: 'A DataFrame is always 2-D, a Series 1-D.' },
-			{ key: 'size', value: formatCount(info.size), help: 'Number of values = rows × columns. Labels are not counted.' },
+		const out: { key: string; value: string; help: string }[] = [
+			{ key: 'shape', value: formatShape(info.shape), help: series ? t('frameInspector').shapeHelpSeries : t('frameInspector').shapeHelpFrame },
+			{ key: 'ndim', value: String(info.ndim), help: t('frameInspector').ndimHelp },
+			{ key: 'size', value: formatCount(info.size), help: t('frameInspector').sizeHelp },
 			{
 				key: 'index',
 				value: labelList(info.index, info.indexKind, info.shape[0], info.indexType),
-				help: 'Row labels. RangeIndex means the default labels 0, 1, 2 … (equal to the positions).'
+				help: t('frameInspector').indexHelp
 			}
 		];
 		if (series) {
-			out.push({ key: 'dtype', value: info.dtypes[0] ?? '?', help: 'A Series has one dtype.' });
-			out.push({ key: 'name', value: info.columns[0] ? info.columns[0] : 'None', help: 'The label a Series carries (e.g. its column name).' });
+			out.push({ key: 'dtype', value: info.dtypes[0] ?? '?', help: t('frameInspector').dtypeHelpSeries });
+			out.push({ key: 'name', value: info.columns[0] ? info.columns[0] : t('frameInspector').none, help: t('frameInspector').nameHelp });
 		} else {
 			out.push({
 				key: 'columns',
 				value: labelList(info.columns, info.columnsKind, info.shape[1], info.columnsType),
-				help: 'Column labels.'
+				help: t('frameInspector').columnsHelp
 			});
 		}
 		return out;
 	});
 </script>
 
-<section class="inspector" aria-label="Properties of {name}">
+<section class="inspector" aria-label={t('inspector').propertiesOf(name)}>
 	<h3 class="title"><code>{name}</code> <span class="muted type">{info.pythonType}</span></h3>
 	<dl>
 		{#each rows as row (row.key)}
@@ -50,7 +51,7 @@
 	</dl>
 	{#if !series}
 		<dl class="dtypes" aria-label="{name}.dtypes">
-			<div class="row head" title="Each column has its own dtype."><dt class="mono"><span class="obj">{name}.</span>dtypes</dt><dd></dd></div>
+			<div class="row head" title={t('frameInspector').dtypesHelp}><dt class="mono"><span class="obj">{name}.</span>dtypes</dt><dd></dd></div>
 			{#each info.dtypes as dt, j (j)}
 				<div class="row sub">
 					<dt class="mono">{info.columns[j]}</dt>
@@ -60,8 +61,8 @@
 			{#if info.shape[1] > info.dtypes.length}<div class="row sub"><dt class="muted">…</dt><dd></dd></div>{/if}
 		</dl>
 	{/if}
-	<div class="row" title="Memory of the values, without the labels: memory_usage(index=False).">
-		<span class="mono muted">memory</span>
+	<div class="row" title={t('frameInspector').memoryHelp}>
+		<span class="mono muted">{t('frameInspector').memory}</span>
 		<span class="mono strong">{formatBytes(info.nbytes)}</span>
 	</div>
 </section>

@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { t } from '../i18n/strings';
 
-	let { title = 'What happened', children }: { title?: string; children: Snippet } = $props();
+	let { title, children }: { title?: string; children: Snippet } = $props();
+	const heading = $derived(title ?? t('explain').whatHappened);
 </script>
 
-<section class="explain" aria-label={title}>
-	<h3 class="eyebrow">{title}</h3>
+<section class="explain" aria-label={heading}>
+	<h3 class="eyebrow">{heading}</h3>
 	<div class="body">{@render children()}</div>
 </section>
 

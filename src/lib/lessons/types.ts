@@ -24,6 +24,12 @@ export type Chapter = {
 	steps: Step[];
 };
 
+/** Indonesian text for a Step; same shape and order as the English one. */
+export type StepText = { title: string; body: string[]; tasks?: { text: string }[]; remember?: string };
+
+/** Indonesian text for a Chapter; patches, slugs and structure stay in the English chapter. */
+export type ChapterText = { title: string; summary: string; topics: string[]; steps: StepText[] };
+
 /** Source patch for typed numbers. */
 export function literal(text: string, dtype = ''): { source: Partial<SourceState> } {
 	return { source: { mode: 'literal', text, dtype } };

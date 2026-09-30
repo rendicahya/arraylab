@@ -3,6 +3,7 @@
 	import Icon from './Icon.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import { runtime } from '../runtime/executor.svelte';
+	import { t } from '../i18n/strings';
 
 	/** Loading / input / Python error notices for the active tool. */
 	let { lab, hideDiagram = false }: { lab: Lab; hideDiagram?: boolean } = $props();
@@ -20,14 +21,14 @@
 	<div class="notice confirm" role="alert">
 		<Icon name="info" size={16} />
 		<div class="confirm-body">
-			<span>This shared link contains code that runs in this lab:</span>
+			<span>{t('runStatus').sharedLinkIntro}</span>
 			<ul>
 				{#each lab.awaitingConfirm as expr (expr)}<li><code>{expr}</code></li>{/each}
 			</ul>
-			<span class="muted">It runs only in your browser. Check it, then run it.</span>
+			<span class="muted">{t('runStatus').sharedLinkOnly}</span>
 		</div>
 		<button class="btn primary" type="button" onclick={() => (lab.awaitingConfirm = null)}>
-			<Icon name="play" size={14} /> Run it
+			<Icon name="play" size={14} /> {t('runStatus').runIt}
 		</button>
 	</div>
 {:else if lab.spec.inputError}
@@ -38,21 +39,18 @@
 {:else if runtime.status === 'error'}
 	<div class="notice error" role="alert">
 		<Icon name="alert" size={16} />
-		<span>
-			Python could not be loaded: {runtime.message}. ArrayLab downloads Python + NumPy (≈ 15 MB) from
-			cdn.jsdelivr.net the first time — check your connection.
-		</span>
-		<button class="btn" type="button" onclick={() => runtime.restart()}>Retry</button>
+		<span>{t('runStatus').pythonNotLoaded(runtime.message ?? '')}</span>
+		<button class="btn" type="button" onclick={() => runtime.restart()}>{t('runStatus').retry}</button>
 	</div>
 {:else if !result && runtime.status !== 'ready'}
 	<div class="notice" role="status" aria-live="polite">
 		<span class="spinner" aria-hidden="true"></span>
-		<span>{runtime.message || 'Starting Python…'} <span class="muted">(first visit downloads ≈ 15 MB, then it is cached)</span></span>
+		<span>{runtime.message || t('runStatus').startingPython} <span class="muted">{t('runStatus').firstVisit}</span></span>
 	</div>
 {:else if !result && lab.running && runtime.message}
 	<div class="notice" role="status" aria-live="polite">
 		<span class="spinner" aria-hidden="true"></span>
-		<span>{runtime.message} <span class="muted">(downloaded once, then cached)</span></span>
+		<span>{runtime.message} <span class="muted">{t('runStatus').cached}</span></span>
 	</div>
 {:else if lab.runtimeError}
 	<div class="notice error" role="alert">
@@ -70,7 +68,7 @@
 {#if warnings?.length}
 	<div class="notice warning" role="status">
 		<Icon name="alert" size={16} />
-		<span>NumPy warned: <code>{warnings.join(' · ')}</code></span>
+		<span>{t('runStatus').numpyWarned} <code>{warnings.join(' · ')}</code></span>
 	</div>
 {/if}
 

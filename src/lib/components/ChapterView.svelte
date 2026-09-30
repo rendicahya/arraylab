@@ -4,11 +4,13 @@
 	import Workspace from './Workspace.svelte';
 	import LessonPanel from './LessonPanel.svelte';
 	import { Lab } from '../lab/lab.svelte';
-	import type { Chapter } from '../lessons';
+	import { localizeChapter, type Chapter } from '../lessons';
+	import { lang } from '../i18n/lang.svelte';
 
-	let { chapter }: { chapter: Chapter } = $props();
+	let { chapter: englishChapter }: { chapter: Chapter } = $props();
+	const chapter = $derived(localizeChapter(englishChapter, lang.current));
 
-	const lab = untrack(() => new Lab(chapter.slug, chapter.steps[0]?.patch));
+	const lab = untrack(() => new Lab(englishChapter.slug, englishChapter.steps[0]?.patch));
 	let step = $state(0);
 	let mounted = false;
 

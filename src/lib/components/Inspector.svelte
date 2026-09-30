@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ArrayInfo } from '../array/types';
 	import { formatBytes, formatCount, formatShape } from '../array/normalize';
+	import { t } from '../i18n/strings';
 
 	/** Property sheet for one array: the attributes you would query in Python. */
 	let {
@@ -11,20 +12,20 @@
 
 	const pending = $derived(info.dtype === '…');
 	const rows = $derived([
-		{ key: 'shape', value: formatShape(info.shape), help: 'Length of each axis.' },
-		{ key: 'ndim', value: String(info.ndim), help: 'Number of axes = number of entries in shape.' },
-		{ key: 'size', value: formatCount(info.size), help: 'Total number of elements = product of the shape.' },
-		{ key: 'dtype', value: info.dtype, help: 'Type of every element. One array has exactly one dtype.' },
-		{ key: 'itemsize', value: pending ? '…' : `${info.itemsize} byte${info.itemsize === 1 ? '' : 's'}`, help: 'Bytes used by one element.' },
-		{ key: 'nbytes', value: pending ? '…' : formatBytes(info.nbytes), help: 'Bytes used by all elements = size × itemsize.' }
+		{ key: 'shape', value: formatShape(info.shape), help: t('inspector').shapeHelp },
+		{ key: 'ndim', value: String(info.ndim), help: t('inspector').ndimHelp },
+		{ key: 'size', value: formatCount(info.size), help: t('inspector').sizeHelp },
+		{ key: 'dtype', value: info.dtype, help: t('inspector').dtypeHelp },
+		{ key: 'itemsize', value: pending ? '…' : t('inspector').byte(info.itemsize), help: t('inspector').itemsizeHelp },
+		{ key: 'nbytes', value: pending ? '…' : formatBytes(info.nbytes), help: t('inspector').nbytesHelp }
 	]);
 </script>
 
-<section class="inspector" aria-label="Properties of {name}">
+<section class="inspector" aria-label={t('inspector').propertiesOf(name)}>
 	<h3 class="title">
 		<code>{name}</code>
 		{#if info.kind === 'scalar' && info.pythonType}<span class="muted type">{info.pythonType}</span>{/if}
-		{#if pending}<span class="muted type">waiting for NumPy…</span>{/if}
+		{#if pending}<span class="muted type">{t('inspector').waiting}</span>{/if}
 	</h3>
 	<dl>
 		{#each rows as row (row.key)}
@@ -34,16 +35,14 @@
 			</div>
 		{/each}
 		{#if !pending && info.ndim > 0}
-			<div class="row" title="Is the data stored in one block, in reading order (row-major)?">
+			<div class="row" title={t('inspector').memoryHelp}>
 				<dt class="mono">memory</dt>
-				<dd>{info.cContiguous ? 'C-contiguous' : 'not contiguous'} · {info.ownsData ? 'owns data' : 'view'}</dd>
+				<dd>{info.cContiguous ? t('inspector').contiguous : t('inspector').notContiguous} · {info.ownsData ? t('inspector').ownsData : t('inspector').view}</dd>
 			</div>
 		{/if}
 	</dl>
 	{#if showNote && info.dtype === 'int32'}
-		<p class="note">
-			int32 is the default integer in this browser (32-bit WebAssembly). Desktop NumPy 2 on 64-bit systems uses int64.
-		</p>
+		<p class="note">{t('inspector').int32Note}</p>
 	{/if}
 </section>
 

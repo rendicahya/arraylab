@@ -4,7 +4,9 @@
 	import Icon from './Icon.svelte';
 	import RichText from './RichText.svelte';
 	import type { Lab } from '../lab/lab.svelte';
-	import { chapters, type Chapter } from '../lessons';
+	import { chapters, localizeChapter, type Chapter } from '../lessons';
+	import { t } from '../i18n/strings';
+	import { lang } from '../i18n/lang.svelte';
 
 	let {
 		chapter,
@@ -12,10 +14,11 @@
 		step = $bindable(0)
 	}: { chapter: Chapter; lab: Lab; step?: number } = $props();
 
+	const localized = $derived(chapters.map((c) => localizeChapter(c, lang.current)));
 	const current = $derived(chapter.steps[step]);
 	const index = $derived(chapters.findIndex((c) => c.slug === chapter.slug));
-	const next = $derived(chapters[index + 1]);
-	const prev = $derived(chapters[index - 1]);
+	const next = $derived(localized[index + 1]);
+	const prev = $derived(localized[index - 1]);
 	let done = $state<Set<number>>(new Set());
 
 	function go(i: number) {
@@ -29,24 +32,24 @@
 
 <div class="lesson">
 	<label class="picker">
-		<span class="visually-hidden">Chapter</span>
+		<span class="visually-hidden">{t('lesson').chapter}</span>
 		<select
 			value={chapter.slug}
 			onchange={(e) => goto(chapterHref((e.currentTarget as HTMLSelectElement).value))}
-			aria-label="Choose chapter"
+			aria-label={t('lesson').chooseChapter}
 		>
-			{#each chapters as c (c.slug)}
+			{#each localized as c (c.slug)}
 				<option value={c.slug}>{c.number} — {c.title}</option>
 			{/each}
 		</select>
 	</label>
 
 	<header>
-		<p class="eyebrow">Chapter {chapter.number}</p>
+		<p class="eyebrow">{t('lesson').chapterN(chapter.number)}</p>
 		<h1>{chapter.title}</h1>
 	</header>
 
-	<ol class="steps" aria-label="Steps">
+	<ol class="steps" aria-label={t('lesson').steps}>
 		{#each chapter.steps as s, i (i)}
 			<li>
 				<button type="button" aria-current={i === step ? 'step' : undefined} onclick={() => go(i)}>
@@ -63,7 +66,7 @@
 			{#each current.body as p, i (i)}<p><RichText text={p} /></p>{/each}
 
 			{#if current.tasks?.length}
-				<h3 class="eyebrow">Try this</h3>
+				<h3 class="eyebrow">{t('lesson').tryThis}</h3>
 				<ul class="tasks">
 					{#each current.tasks as task, i (i)}
 						<li>
@@ -86,28 +89,28 @@
 					{/each}
 				</ul>
 				<button class="btn ghost reset" type="button" onclick={() => lab.apply(current.patch)}>
-					<Icon name="reset" size={14} /> Reset this step
+					<Icon name="reset" size={14} /> {t('lesson').resetStep}
 				</button>
 			{/if}
 
 			{#if current.remember}
-				<p class="remember"><strong>Remember:</strong> <RichText text={current.remember} /></p>
+				<p class="remember"><strong>{t('lesson').remember}</strong> <RichText text={current.remember} /></p>
 			{/if}
 		</article>
 	{/if}
 
-	<nav class="pager" aria-label="Step navigation">
+	<nav class="pager" aria-label={t('lesson').stepNav}>
 		{#if step > 0}
-			<button class="btn" type="button" onclick={() => go(step - 1)}><Icon name="chevronLeft" size={16} /> Back</button>
+			<button class="btn" type="button" onclick={() => go(step - 1)}><Icon name="chevronLeft" size={16} /> {t('lesson').back}</button>
 		{:else if prev}
 			<a class="btn" href={chapterHref(prev.slug)}><Icon name="chevronLeft" size={16} /> {prev.number}</a>
 		{:else}
 			<span></span>
 		{/if}
-		<span class="count muted">{step + 1} / {chapter.steps.length}</span>
+		<span class="count muted">{t('lesson').count(step + 1, chapter.steps.length)}</span>
 		{#if step < chapter.steps.length - 1}
 			<button class="btn primary" type="button" onclick={() => ((done = new Set([...done, step])), go(step + 1))}>
-				Next <Icon name="chevronRight" size={16} />
+				{t('lesson').next} <Icon name="chevronRight" size={16} />
 			</button>
 		{:else if next}
 			<a class="btn primary" href={chapterHref(next.slug)}>{next.number} {next.title} <Icon name="chevronRight" size={16} /></a>

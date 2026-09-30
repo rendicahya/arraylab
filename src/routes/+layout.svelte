@@ -4,12 +4,14 @@
 	import AppHeader from '$lib/components/AppHeader.svelte';
 	import { theme } from '$lib/components/theme.svelte';
 	import { fullscreen } from '$lib/components/fullscreen.svelte';
+	import { lang } from '$lib/i18n/lang.svelte';
 
 	let { children } = $props();
 
 	onMount(() => {
 		const stopTheme = theme.init();
 		const stopFullscreen = fullscreen.init();
+		lang.init();
 		return () => {
 			stopTheme?.();
 			stopFullscreen?.();

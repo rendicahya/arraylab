@@ -6,42 +6,42 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import ArrayGrid from '$lib/visualization/ArrayGrid.svelte';
 	import { Lab } from '$lib/lab/lab.svelte';
-	import { chapters } from '$lib/lessons';
+	import { chapters, localizeChapter } from '$lib/lessons';
+	import { t } from '$lib/i18n/strings';
+	import { lang } from '$lib/i18n/lang.svelte';
 
 	const lab = new Lab('home', { tool: 'array' });
 	lab.connect();
 
 	const a = $derived(lab.resultFor('array') ? lab.target('a') : lab.provisional);
+	const localized = $derived(chapters.map((c) => localizeChapter(c, lang.current)));
 	const chapterHref = (slug: string) => resolve('/learn/[slug]', { slug }) + '/';
 </script>
 
 <svelte:head>
-	<title>ArrayLab — Explore arrays. Understand tensors.</title>
+	<title>{t('home').title}</title>
 </svelte:head>
 
 <div class="home">
 	<section class="hero">
 		<div class="intro">
-			<p class="eyebrow">An interactive NumPy laboratory</p>
-			<h1>Explore arrays.<br /><span class="accent">Understand tensors.</span></h1>
-			<p class="lead">
-				Type numbers and watch them become a real NumPy array — then reduce along axes, slice, reshape and broadcast,
-				and <em>see</em> what NumPy does. Python runs right in your browser.
-			</p>
+			<p class="eyebrow">{t('home').eyebrow}</p>
+			<h1>{t('home').h1a}<br /><span class="accent">{t('home').h1b}</span></h1>
+			<p class="lead">{t('home').lead}</p>
 			<div class="cta">
-				<a class="btn primary big" href={chapterHref('ndarray')}><Icon name="book" size={16} /> Start chapter 01</a>
-				<a class="btn big" href={resolve('/lab') + '/'}><Icon name="flask" size={16} /> Open the lab</a>
+				<a class="btn primary big" href={chapterHref('ndarray')}><Icon name="book" size={16} /> {t('home').startChapter}</a>
+				<a class="btn big" href={resolve('/lab') + '/'}><Icon name="flask" size={16} /> {t('home').openLab}</a>
 			</div>
-			<ol class="how" aria-label="How ArrayLab works">
-				<li><span class="step mono">1</span><span><strong>Type numbers</strong> — no Python needed to start.</span></li>
-				<li><span class="step mono">2</span><span><strong>See the ndarray</strong> — its grid, axes, shape and dtype.</span></li>
+			<ol class="how" aria-label={t('home').howAria}>
+				<li><span class="step mono">1</span><span><strong>{t('home').how1Strong}</strong>{t('home').how1}</span></li>
+				<li><span class="step mono">2</span><span><strong>{t('home').how2Strong}</strong>{t('home').how2}</span></li>
 				<li>
-					<span class="step mono">3</span><span><strong>Change something</strong> — an axis, an index, a shape — and watch NumPy's answer.</span>
+					<span class="step mono">3</span><span><strong>{t('home').how3Strong}</strong>{t('home').how3}</span>
 				</li>
 			</ol>
 		</div>
 
-		<div class="try" aria-label="Try it: create an array">
+		<div class="try" aria-label={t('home').tryAria}>
 			<SourceInput {lab} compact />
 			<RunStatus {lab} />
 			{#if a}
@@ -54,9 +54,9 @@
 	</section>
 
 	<section class="chapters" aria-labelledby="chapters-title">
-		<h2 id="chapters-title">Chapters</h2>
+		<h2 id="chapters-title">{t('home').chapters}</h2>
 		<ol>
-			{#each chapters as c (c.slug)}
+			{#each localized as c (c.slug)}
 				<li>
 					<a href={chapterHref(c.slug)}>
 						<span class="num mono">{c.number}</span>
@@ -64,8 +64,8 @@
 							<strong>{c.title}</strong>
 							<span class="muted">{c.summary}</span>
 						</span>
-						{#if c.phase === 'torch'}<span class="torch-tag" title="PyTorch code is shown next to live NumPy; run it in Colab">PyTorch</span>{/if}
-						{#if c.phase === 'pandas'}<span class="torch-tag" title="Real pandas, running in your browser">pandas</span>{/if}
+						{#if c.phase === 'torch'}<span class="torch-tag" title={t('home').pytorchTitle}>{t('home').pytorchTag}</span>{/if}
+						{#if c.phase === 'pandas'}<span class="torch-tag" title={t('home').pandasTitle}>{t('home').pandasTag}</span>{/if}
 					</a>
 				</li>
 			{/each}
@@ -73,9 +73,8 @@
 	</section>
 
 	<footer class="foot muted">
-		ArrayLab runs Python and NumPy in your browser with <a href="https://pyodide.org" rel="noopener">Pyodide</a>. No
-		server, no account — nothing you type leaves your computer. ·
-		<a href="https://github.com/rendicahya/arraylab" rel="noopener">Source on GitHub</a>
+		{t('home').footer1} <a href="https://pyodide.org" rel="noopener">Pyodide</a>. {t('home').footer2}
+		<a href="https://github.com/rendicahya/arraylab" rel="noopener">{t('home').sourceOnGithub}</a>
 	</footer>
 </div>
 

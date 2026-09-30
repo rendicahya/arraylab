@@ -21,6 +21,7 @@
 	import type { Lab } from '../lab/lab.svelte';
 	import { TOOLS } from '../lab/types';
 	import { isFrameInfo, type ArrayInfo, type FrameInfo } from '../array/types';
+	import { t } from '../i18n/strings';
 
 	/**
 	 * The lab layout: optional lesson column, visualization, inspector and code panel.
@@ -112,10 +113,10 @@
 
 <div class="workspace" class:has-left={!!left}>
 	{#if left}
-		<aside class="left" aria-label="Lesson">{@render left()}</aside>
+		<aside class="left" aria-label={t('workspace').lesson}>{@render left()}</aside>
 	{/if}
 
-	<section class="center" aria-label="Array lab">
+	<section class="center" aria-label={t('workspace').arrayLab}>
 		{#if showSource}
 			<div class="source-wrap"><SourceInput {lab} /></div>
 		{/if}
@@ -124,23 +125,23 @@
 			class:fade-left={hiddenLeft}
 			class:fade-right={hiddenRight}
 			role="tablist"
-			aria-label="Tools"
+			aria-label={t('workspace').tools}
 			bind:this={tabRow}
 			bind:clientWidth={tabRowWidth}
 			onscroll={measureTabs}
 		>
-			{#each TOOLS as t, i (t.id)}
-				{#if i > 0 && TOOLS[i - 1].group !== t.group}<span class="sep" aria-hidden="true"></span>{/if}
+			{#each TOOLS as tool_, i (tool_.id)}
+				{#if i > 0 && TOOLS[i - 1].group !== tool_.group}<span class="sep" aria-hidden="true"></span>{/if}
 				<button
 					type="button"
 					role="tab"
-					aria-selected={tool === t.id}
-					title={t.description}
-					onclick={() => (lab.settings.tool = t.id)}>{t.label}</button
+					aria-selected={tool === tool_.id}
+					title={t('tools')[tool_.id].description}
+					onclick={() => (lab.settings.tool = tool_.id)}>{t('tools')[tool_.id].label}</button
 				>
 			{/each}
 		</div>
-		<div class="tool-body" role="tabpanel" aria-label={TOOLS.find((t) => t.id === tool)?.description}>
+		<div class="tool-body" role="tabpanel" aria-label={tool ? t('tools')[tool].description : undefined}>
 			{#if tool === 'array'}<ArrayView {lab} />
 			{:else if tool === 'axis'}<AxisView {lab} />
 			{:else if tool === 'index'}<IndexView {lab} />
@@ -157,8 +158,8 @@
 		</div>
 	</section>
 
-	<aside class="right" aria-label="Inspector">
-		<h2 class="eyebrow">Inspector</h2>
+	<aside class="right" aria-label={t('workspace').inspector}>
+		<h2 class="eyebrow">{t('workspace').inspector}</h2>
 		{#each inspected as item, i (item.name)}
 			<Inspector
 				info={item.info}
@@ -170,7 +171,7 @@
 			<FrameInspector info={item.info} name={item.name} />
 		{/each}
 		{#if !inspected.length && !frames.length}
-			<p class="muted small">Array properties appear here.</p>
+			<p class="muted small">{t('workspace').noProperties}</p>
 		{/if}
 	</aside>
 
