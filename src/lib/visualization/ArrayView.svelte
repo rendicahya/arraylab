@@ -6,6 +6,8 @@
 	import type { Lab } from '../lab/lab.svelte';
 	import { axisRoles, formatIndex, ordinal, unravel } from '../array/normalize';
 	import { valueAt } from '../array/inspect';
+	import { t } from '../i18n/strings';
+	import { lang } from '../i18n/lang.svelte';
 
 	let { lab }: { lab: Lab } = $props();
 
@@ -36,36 +38,31 @@
 						>
 					{/each}
 				{:else}
-					<span class="muted">Hover or focus a cell to see its index.</span>
+					<span class="muted">{t('arrayView').hoverHint}</span>
 				{/if}
 			</p>
 		</div>
-		<Explain title="Reading the array">
+		<Explain title={t('arrayView').readingTheArray}>
 			{#if a.ndim === 0}
-				<p>
-					A single value makes a <strong>0-d array</strong>: shape <code>()</code>, ndim 0, size 1. It
-					has no axes to move along.
-				</p>
+				<p>{t('arrayView').scalarExplain}</p>
 			{:else}
 				<p>
-					Every element has one index per axis — {a.ndim}
-					{a.ndim === 1 ? 'number' : 'numbers'}, because ndim is {a.ndim}. The shape lists how long
-					each axis is.
+					{t('arrayView').everyElement(a.ndim, a.ndim === 1 ? t('arrayView').number : t('arrayView').numbers)}
 				</p>
 				<ul>
-					{#each axisRoles(a.ndim) as role, axis (axis)}
+					{#each axisRoles(a.ndim, lang.current) as role, axis (axis)}
 						<li>
-							<code>axis {axis}</code> has length {a.shape[axis]}: moving along it changes the {ordinal(
-								axis + 1
-							)} index{a.ndim > 1 ? ` — you step between ${role}` : ''}.
+							<code>axis {axis}</code> {t('arrayView').axisLength(
+								axis,
+								a.shape[axis],
+								ordinal(axis + 1, lang.current),
+								a.ndim > 1 ? t('arrayView').steppingBetween(role) : ''
+							)}.
 						</li>
 					{/each}
 				</ul>
 				{#if a.ndim >= 3}
-					<p class="muted">
-						Rows and columns are only names for the last two axes. With more dimensions, count axes from
-						the outside in: axis 0 selects the outermost block.
-					</p>
+					<p class="muted">{t('arrayView').higherDimNote}</p>
 				{/if}
 			{/if}
 		</Explain>

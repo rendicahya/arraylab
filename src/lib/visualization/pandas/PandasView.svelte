@@ -11,16 +11,17 @@
 	import { pandasUsesSource } from '../../lab/codegen';
 	import { fitLabels, frameShape, parseLabels } from '../../pandas/codegen';
 	import { PANDAS_VERSION } from '../../runtime/config';
+	import { tv } from '../../i18n/viz/pandas';
 
 	let { lab }: { lab: Lab } = $props();
 
-	const VIEWS: { id: PandasView; label: string }[] = [
-		{ id: 'frame', label: 'DataFrame' },
-		{ id: 'dtypes', label: 'dtype per column' },
-		{ id: 'axis', label: 'axis' },
-		{ id: 'select', label: 'loc / iloc' },
-		{ id: 'align', label: 'Alignment' }
-	];
+	const VIEWS = $derived<{ id: PandasView; label: string }[]>([
+		{ id: 'frame', label: tv('pandasView').viewFrame },
+		{ id: 'dtypes', label: tv('pandasView').viewDtypes },
+		{ id: 'axis', label: tv('pandasView').viewAxis },
+		{ id: 'select', label: tv('pandasView').viewSelect },
+		{ id: 'align', label: tv('pandasView').viewAlign }
+	]);
 
 	const s = $derived(lab.settings.pandas);
 	const a = $derived(lab.resultFor('pandas') ? lab.target('a') : null);
@@ -53,13 +54,13 @@
 
 <div class="pandas">
 	<div class="controls">
-		<span class="segmented" role="group" aria-label="pandas view">
+		<span class="segmented" role="group" aria-label={tv('pandasView').ariaLabel}>
 			{#each VIEWS as v (v.id)}
 				<button type="button" aria-pressed={s.view === v.id} onclick={() => (s.view = v.id)}>{v.label}</button>
 			{/each}
 		</span>
-		<span class="real muted" title="pandas is downloaded the first time this tool runs (≈ 5 MB), then cached.">
-			real pandas {PANDAS_VERSION} · runs here
+		<span class="real muted" title={tv('pandasView').cachedTitle}>
+			{tv('pandasView').realPandas(PANDAS_VERSION)}
 		</span>
 	</div>
 

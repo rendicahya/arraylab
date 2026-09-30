@@ -3,12 +3,14 @@
 	import Explain from '../components/Explain.svelte';
 	import Tag from '../components/Tag.svelte';
 	import RunStatus from '../components/RunStatus.svelte';
+	import RichText from '../components/RichText.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import type { CombineOp } from '../lab/types';
 	import { MAX_PARTS } from '../lab/codegen';
 	import { formatIndex, formatShape, unravel } from '../array/normalize';
 	import { idMap } from '../array/inspect';
 	import { concatenatePlan, normalizeAxis, stackPlan } from '../array/combine';
+	import { tCombine } from '../i18n/viz/viewsCombineCode';
 
 	/** np.concatenate / np.stack of a and b, and np.split of a. */
 	let { lab }: { lab: Lab } = $props();
@@ -37,11 +39,11 @@
 	/** stack adds an axis, so it has one more place to put it. */
 	const axes = $derived(Array.from({ length: s.op === 'stack' ? ndim + 1 : Math.max(1, ndim) }, (_, i) => i));
 
-	const OPS: { id: CombineOp; label: string; title: string }[] = [
-		{ id: 'concatenate', label: 'np.concatenate', title: 'Join along an existing axis' },
-		{ id: 'stack', label: 'np.stack', title: 'Join along a new axis' },
-		{ id: 'split', label: 'np.split', title: 'Cut a into equal pieces' }
-	];
+	const OPS = $derived<{ id: CombineOp; label: string; title: string }[]>([
+		{ id: 'concatenate', label: 'np.concatenate', title: tCombine().opTitles.concatenate },
+		{ id: 'stack', label: 'np.stack', title: tCombine().opTitles.stack },
+		{ id: 'split', label: 'np.split', title: tCombine().opTitles.split }
+	]);
 
 	function setOp(op: CombineOp) {
 		s.op = op;
@@ -116,23 +118,23 @@
 </script>
 
 <div class="controls">
-	<span class="segmented" role="group" aria-label="Operation">
+	<span class="segmented" role="group" aria-label={tCombine().operationAria}>
 		{#each OPS as op (op.id)}
 			<button type="button" class="mono" aria-pressed={s.op === op.id} title={op.title} onclick={() => setOp(op.id)}>{op.label}</button>
 		{/each}
 	</span>
 	<span class="field">
-		<span class="eyebrow" id="cb-axis">axis</span>
+		<span class="eyebrow" id="cb-axis">{tCombine().axisLabel}</span>
 		<span class="segmented" role="group" aria-labelledby="cb-axis">
 			{#each axes as ax (ax)}
 				<button type="button" aria-pressed={s.axis === ax} onclick={() => (s.axis = ax)}>{ax}</button>
 			{/each}
-			<button type="button" aria-pressed={s.axis === -1} onclick={() => (s.axis = -1)} title="the last axis">−1</button>
+			<button type="button" aria-pressed={s.axis === -1} onclick={() => (s.axis = -1)} title={tCombine().lastAxisTitle}>−1</button>
 		</span>
 	</span>
 	{#if s.op === 'split'}
 		<span class="field">
-			<span class="eyebrow" id="cb-parts">pieces</span>
+			<span class="eyebrow" id="cb-parts">{tCombine().piecesLabel}</span>
 			<span class="segmented" role="group" aria-labelledby="cb-parts">
 				{#each Array.from({ length: MAX_PARTS }, (_, i) => i + 1) as n (n)}
 					<button type="button" aria-pressed={s.parts === n} onclick={() => (s.parts = n)}>{n}</button>
@@ -145,13 +147,13 @@
 {#if s.op !== 'split'}
 	<div class="b-row">
 		<label class="b-input">
-			<span class="eyebrow">b — type numbers (new line = new row, [[…]] for one row)</span>
+			<span class="eyebrow">{tCombine().bInputLabel}</span>
 			<textarea bind:value={s.b} rows={Math.min(5, Math.max(2, s.b.split('\n').length))} spellcheck="false" class="mono"></textarea>
 		</label>
-		<div class="presets" role="group" aria-label="Example shapes for b">
+		<div class="presets" role="group" aria-label={tCombine().presetsAria}>
 			{#each presets as p (p.label)}
 				<button type="button" class="chip" aria-pressed={s.b === p.text} onclick={() => (s.b = p.text)}>
-					{p.label} <span class="mono muted">{formatShape(p.shape)}</span>
+					{(tCombine().presetLabels as Record<string, string>)[p.label] ?? p.label} <span class="mono muted">{formatShape(p.shape)}</span>
 				</button>
 			{/each}
 		</div>
@@ -161,7 +163,7 @@
 <RunStatus {lab} />
 
 {#if plan?.columns.length && a && b}
-	<table class="plan" aria-label="Shapes along each axis">
+	<table class="plan" aria-label={tCombine().planAria}>
 		<thead>
 			<tr>
 				<th></th>
@@ -216,7 +218,7 @@
 			<figure>
 				<figcaption>
 					<code>result</code> <span class="muted">{formatShape(result.shape)} · {result.dtype}</span>
-					<Tag title="np.concatenate and np.stack always write into new memory">new memory (copy)</Tag>
+					<Tag title={tCombine().newMemoryTitle}>{tCombine().newMemoryTag}</Tag>
 				</figcaption>
 				<ArrayGrid info={result} name="result" decorate={decorateResult} onhover={(f) => (hover = f)} size="small" />
 			</figure>
@@ -227,7 +229,7 @@
 {#if a && s.op === 'split'}
 	<div class="stage">
 		<figure>
-			<figcaption><code>a</code> <span class="muted">{formatShape(a.shape)} · cut along axis {s.axis}</span></figcaption>
+			<figcaption><code>a</code> <span class="muted">{formatShape(a.shape)}{tCombine().cutAlong(s.axis)}</span></figcaption>
 			<ArrayGrid info={a} name="a" decorate={decorateSplit} />
 		</figure>
 		{#if parts.length}
@@ -237,7 +239,7 @@
 					<figure>
 						<figcaption>
 							<code>parts[{i}]</code> <span class="muted">{formatShape(p.shape)}</span>
-							<Tag tone={views[i] === 'True' ? 'accent' : 'neutral'} title="np.shares_memory(parts[{i}], a)">{views[i] === 'True' ? 'view of a' : 'copy'}</Tag>
+							<Tag tone={views[i] === 'True' ? 'accent' : 'neutral'} title={tCombine().sharesMemoryTitle(i)}>{views[i] === 'True' ? tCombine().viewOfA : tCombine().copy}</Tag>
 						</figcaption>
 						<ArrayGrid info={p} name="parts[{i}]" decorate={() => ({ group: i })} legend={false} size="small" />
 					</figure>
@@ -250,24 +252,15 @@
 {#if a && (result || parts.length)}
 	<Explain>
 		{#if s.op === 'concatenate' && result && b}
-			<p>
-				<code>np.concatenate</code> joins along an <strong>existing</strong> axis: along axis {k} the sizes add up
-				({plan?.columns[k ?? 0]?.a} + {plan?.columns[k ?? 0]?.b}); every other axis must already match. ndim stays {a.ndim}.
-			</p>
-			<p class="muted">Hover a result cell to see where it came from. The result is new memory: changing it does not change <code>a</code> or <code>b</code>.</p>
+			<p><RichText text={tCombine().explainConcatenate(k ?? 0, plan?.columns[k ?? 0]?.a ?? 0, plan?.columns[k ?? 0]?.b ?? 0, a.ndim)} /></p>
+			<p class="muted"><RichText text={tCombine().explainConcatenateMuted} /></p>
 		{:else if s.op === 'stack' && result}
-			<p>
-				<code>np.stack</code> joins along a <strong>new</strong> axis {k}: ndim goes from {a.ndim} to {result.ndim}.
-				It is the same as giving each array that axis first and then concatenating:
-			</p>
-			<p><code>np.concatenate([np.expand_dims(a, {k}), np.expand_dims(b, {k})], axis={k})</code> — each input becomes <code>{expanded}</code>.</p>
-			{#if k === 0}<p class="muted"><code>np.expand_dims(a, 0)</code> is the same as <code>a[np.newaxis]</code>.</p>{/if}
+			<p><RichText text={tCombine().explainStack(k ?? 0, a.ndim, result.ndim)} /></p>
+			<p><code>np.concatenate([np.expand_dims(a, {k}), np.expand_dims(b, {k})], axis={k})</code> — {tCombine().explainStackExpand(k ?? 0, expanded)}</p>
+			{#if k === 0}<p class="muted"><RichText text={tCombine().explainStackNewaxis} /></p>{/if}
 		{:else if s.op === 'split'}
-			<p>
-				<code>np.split</code> cuts <code>a</code> into {parts.length} equal pieces along axis {s.axis} and returns a <strong>list</strong>.
-				The pieces are <strong>views</strong>: they share memory with <code>a</code> (chapter 08).
-			</p>
-			<p class="muted">Pieces must be equal. For uneven pieces use <code>np.array_split</code>.</p>
+			<p><RichText text={tCombine().explainSplit(parts.length, s.axis)} /></p>
+			<p class="muted"><RichText text={tCombine().explainSplitMuted} /></p>
 		{/if}
 	</Explain>
 {/if}

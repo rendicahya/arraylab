@@ -9,6 +9,7 @@
 	import { accessorText, isSimpleSelection } from '../../pandas/codegen';
 	import { idMap } from '../../array/inspect';
 	import { formatShape } from '../../array/normalize';
+	import { tv } from '../../i18n/viz/pandas';
 
 	/** df[…], df.loc[…] (labels) and df.iloc[…] (positions). */
 	let { lab }: { lab: Lab } = $props();
@@ -21,11 +22,11 @@
 	const scalarResult = $derived(ok ? lab.target('result') : null);
 	const src = $derived(ok ? lab.target('__src') : null);
 
-	const ACCESSORS: { id: PandasAccessor; label: string; help: string }[] = [
-		{ id: '', label: 'df[ ]', help: 'Columns by label (or rows by a mask / slice)' },
-		{ id: 'loc', label: 'df.loc[ ]', help: 'Rows, columns by label' },
-		{ id: 'iloc', label: 'df.iloc[ ]', help: 'Rows, columns by position' }
-	];
+	const ACCESSORS = $derived<{ id: PandasAccessor; label: string; help: string }[]>([
+		{ id: '', label: 'df[ ]', help: tv('pandasSelect').accessorColHelp },
+		{ id: 'loc', label: 'df.loc[ ]', help: tv('pandasSelect').accessorLocHelp },
+		{ id: 'iloc', label: 'df.iloc[ ]', help: tv('pandasSelect').accessorIlocHelp }
+	]);
 
 	let draft = $state('');
 	$effect.pre(() => {
@@ -71,7 +72,7 @@
 	function decorate(i: number, j: number): CellDecor | undefined {
 		const id = i * (df?.shape[1] ?? cols) + j;
 		if (!src) return undefined;
-		return selected.has(id) ? { state: 'selected', title: 'selected' } : { state: 'dim' };
+		return selected.has(id) ? { state: 'selected', title: tv('pandasSelect').selected } : { state: 'dim' };
 	}
 
 	function pick(i: number, j: number) {
@@ -86,14 +87,14 @@
 	const intLabels = $derived(df?.indexKind === 'i' && df.indexType !== 'RangeIndex');
 
 	function kindOf(r: FrameInfo | null): string {
-		if (!r) return 'a single value (scalar)';
-		return r.kind === 'series' ? 'a Series' : 'a DataFrame';
+		if (!r) return tv('pandasSelect').scalar;
+		return r.kind === 'series' ? tv('pandasSelect').series : tv('pandasSelect').dataFrame;
 	}
 </script>
 
 <div class="pd-row">
 	<div class="pd-field">
-		<span class="eyebrow" id="pd-acc">Select with</span>
+		<span class="eyebrow" id="pd-acc">{tv('pandasSelect').selectWith}</span>
 		<span class="segmented" role="group" aria-labelledby="pd-acc">
 			{#each ACCESSORS as acc (acc.id)}
 				<button type="button" title={acc.help} aria-pressed={s.accessor === acc.id} onclick={() => (s.accessor = acc.id)}>{acc.label}</button>
@@ -109,15 +110,15 @@
 				oninput={onInput}
 				spellcheck="false"
 				autocomplete="off"
-				aria-label="Selection inside {accessorText(s.accessor)}[ ]"
+				aria-label={tv('pandasSelect').selectionAria(accessorText(s.accessor))}
 				size={Math.max(8, draft.length + 1)}
 			/>
 			<span>]</span>
 		</label>
-		<button class="btn" type="submit" class:primary={pending}>Apply</button>
+		<button class="btn" type="submit" class:primary={pending}>{tv('pandasSelect').apply}</button>
 	</form>
 </div>
-<div class="pd-chips" role="group" aria-label="Example selections">
+<div class="pd-chips" role="group" aria-label={tv('pandasSelect').examplesAria}>
 	{#each presets as p (p)}
 		<button type="button" class="pd-chip" aria-pressed={s.select === p} onclick={() => choose(p)}>{accessorText(s.accessor)}[{p}]</button>
 	{/each}
@@ -126,7 +127,7 @@
 {#if df}
 	<div class="pd-stage">
 		<figure>
-			<figcaption><code>df</code> <span class="muted">{formatShape(df.shape)} · click a value to select it</span></figcaption>
+			<figcaption><code>df</code> <span class="muted">{formatShape(df.shape)} · {tv('pandasSelect').clickToSelect}</span></figcaption>
 			<FrameTable info={df} {decorate} onselect={pick} hitRows={src ? hitRows : undefined} hitCols={src ? hitCols : undefined} />
 		</figure>
 		{#if frameResult || scalarResult}
@@ -135,7 +136,7 @@
 				<figcaption>
 					<code>result</code>
 					<span class="muted">
-						{#if frameResult}{frameResult.kind === 'series' ? 'Series' : 'DataFrame'} {formatShape(frameResult.shape)}{:else if scalarResult}scalar · {scalarResult.pythonType ?? scalarResult.dtype}{/if}
+						{#if frameResult}{frameResult.kind === 'series' ? 'Series' : 'DataFrame'} {formatShape(frameResult.shape)}{:else if scalarResult}{tv('pandasSelect').scalarShort} · {scalarResult.pythonType ?? scalarResult.dtype}{/if}
 					</span>
 				</figcaption>
 				{#if frameResult}
@@ -150,34 +151,33 @@
 	{#if ok}
 		<Explain>
 			{#if s.accessor === 'loc'}
-				<p><code>.loc</code> selects by <strong>label</strong>: the names in the shaded boxes. Rows first, then columns.</p>
+				<p>{tv('pandasSelect').locSelectsByLabel}</p>
 				{#if sliced}
-					<p><strong>A label slice includes its end:</strong> <code>{rowLabel(0)}:{rowLabel(Math.min(1, df.shape[0] - 1))}</code> contains both rows. There is no “one past the end” label to stop at.</p>
+					<p>{tv('pandasSelect').labelSliceIncludes(rowLabel(0), rowLabel(Math.min(1, df.shape[0] - 1)))}</p>
 				{/if}
 			{:else if s.accessor === 'iloc'}
-				<p><code>.iloc</code> selects by <strong>position</strong> (the small grey numbers), exactly like NumPy indexing: <code>df.iloc[i, j]</code> ↔ <code>df.to_numpy()[i, j]</code>.</p>
+				<p>{tv('pandasSelect').ilocSelectsByPosition}</p>
 				{#if sliced}
-					<p><strong>A position slice excludes its end</strong>, like Python and NumPy: <code>0:1</code> is only position 0.</p>
+					<p>{tv('pandasSelect').positionSliceExcludes}</p>
 				{/if}
 			{:else}
-				<p>
-					Plain <code>df[…]</code> selects <strong>columns</strong> by label — unlike NumPy, where <code>a[0]</code> is the first
-					<em>row</em>. A boolean mask (<code>df[df['A'] > 2]</code>) or a slice (<code>df[0:1]</code>) selects rows instead.
-				</p>
+				<p>{tv('pandasSelect').plainDfSelectsColumns}</p>
 			{/if}
 			<p>
-				Selected <strong>{selected.size}</strong> of {df.size} values → {kindOf(frameResult)}{frameResult ? ` of shape ${formatShape(frameResult.shape)}` : ''}.
+				{tv('pandasSelect').selectedCount(
+					selected.size,
+					df.size,
+					kindOf(frameResult),
+					frameResult ? ` of shape ${formatShape(frameResult.shape)}` : ''
+				)}
 				{#if frameResult?.kind === 'series'}
-					One axis was fixed by a single label or position, so one set of labels remains.
+					{tv('pandasSelect').oneAxisFixed}
 				{:else if !frameResult}
-					One label (or position) per axis picks one value.
+					{tv('pandasSelect').oneLabelPerAxis}
 				{/if}
 			</p>
 			{#if intLabels}
-				<p class="warn">
-					The row labels are numbers. <code>df.loc[{df.index[0]}]</code> means the <em>label</em> {df.index[0]}, <code>df.iloc[0]</code> the first
-					<em>position</em> — and <code>df.loc[0]</code> is a KeyError unless some row is labeled 0.
-				</p>
+				<p class="warn">{tv('pandasSelect').intLabelsWarn(String(df.index[0]))}</p>
 			{/if}
 		</Explain>
 	{/if}

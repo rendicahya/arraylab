@@ -4,8 +4,10 @@
 	import FrameTable from './FrameTable.svelte';
 	import { isFrameInfo } from '../array/types';
 	import ErrorCard from '../components/ErrorCard.svelte';
+	import RichText from '../components/RichText.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import { formatShape } from '../array/normalize';
+	import { tCodeResult } from '../i18n/viz/viewsCombineCode';
 
 	/** Visualizes arrays produced by the learner's own code in the editor. */
 	let { lab }: { lab: Lab } = $props();
@@ -17,22 +19,19 @@
 
 {#if lab.runtimeError && !r}
 	<p class="stopped" role="status">
-		<strong>Stopped.</strong> {lab.runtimeError} Press Run to start again.
+		<strong>{tCodeResult().stopped}</strong> {lab.runtimeError} {tCodeResult().stoppedRest}
 	</p>
 {/if}
 {#if !r}
 	<div class="empty">
-		<p><strong>Write NumPy (or pandas) code in the editor below and press Run</strong> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>).</p>
-		<p class="muted">
-			Arrays and DataFrames you create appear here. The variables from the tools (<code>a</code>, <code>b</code>, <code>result</code>)
-			live in the same Python session, so you can use them directly.
-		</p>
+		<p><strong>{tCodeResult().emptyTitle}</strong> ({tCodeResult().emptyOr} <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>).</p>
+		<p class="muted"><RichText text={tCodeResult().emptyBody} /></p>
 	</div>
 {:else}
 	{#if r.error}<ErrorCard error={r.error} />{/if}
 	{#if r.variables?.length}
-		<div class="vars" role="group" aria-label="Arrays in this session">
-			<span class="eyebrow">Variables</span>
+		<div class="vars" role="group" aria-label={tCodeResult().variablesAria}>
+			<span class="eyebrow">{tCodeResult().variables}</span>
 			{#each r.variables as v (v.name)}
 				<button
 					type="button"
@@ -47,9 +46,9 @@
 	{/if}
 	{#if other}
 		<div class="value">
-			<span class="eyebrow">Last expression</span>
+			<span class="eyebrow">{tCodeResult().lastExpression}</span>
 			<pre class="mono">{other.repr}</pre>
-			<span class="muted small">type: <code>{other.pythonType}</code></span>
+			<span class="muted small">{tCodeResult().type} <code>{other.pythonType}</code></span>
 		</div>
 	{/if}
 	{#if view && isFrameInfo(view)}

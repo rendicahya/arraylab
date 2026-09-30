@@ -1,11 +1,14 @@
 <script lang="ts">
 	import Icon from '../components/Icon.svelte';
+	import { tTorchCode } from '../i18n/viz/torchAutograd';
 
 	/**
 	 * PyTorch code that ArrayLab shows but does not run (PyTorch is not available in
 	 * the browser). Always labeled as such, with a copy button.
 	 */
-	let { code, title = 'PyTorch' }: { code: string; title?: string } = $props();
+	const tc = $derived(tTorchCode());
+	let { code, title }: { code: string; title?: string } = $props();
+	const heading = $derived(title ?? tc.defaultTitle);
 
 	let copied = $state(false);
 
@@ -22,11 +25,11 @@
 
 <figure class="torch-code">
 	<figcaption>
-		<span class="title">{title}</span>
-		<span class="tag" title="PyTorch does not run in the browser. Copy the code or open the Colab notebook to run it.">
-			not run here
+		<span class="title">{heading}</span>
+		<span class="tag" title={tc.notRunTitle}>
+			{tc.notRunHere}
 		</span>
-		<button class="btn ghost copy" type="button" onclick={copy} aria-label="Copy PyTorch code">
+		<button class="btn ghost copy" type="button" onclick={copy} aria-label={tc.copyAria}>
 			<Icon name={copied ? 'check' : 'copy'} size={13} />
 		</button>
 	</figcaption>

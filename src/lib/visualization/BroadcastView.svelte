@@ -3,11 +3,13 @@
 	import ShapeAlignment from './ShapeAlignment.svelte';
 	import Explain from '../components/Explain.svelte';
 	import RunStatus from '../components/RunStatus.svelte';
+	import RichText from '../components/RichText.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import type { BroadcastOp } from '../lab/types';
 	import { formatIndex, formatShape, unravel } from '../array/normalize';
 	import { alignShapes } from '../array/broadcast';
 	import { gatherInfo, idMap, valueAt } from '../array/inspect';
+	import { tBroadcast } from '../i18n/viz/broadcastVectorizeDtype';
 
 	let { lab }: { lab: Lab } = $props();
 
@@ -36,11 +38,12 @@
 		const row = Array.from({ length: last }, (_, i) => (i + 1) * 10).join(' ');
 		const col = Array.from({ length: first }, (_, i) => (i + 1) * 100).join('\n');
 		const bad = Array.from({ length: last === 2 ? 3 : 2 }, (_, i) => i + 1).join(' ');
+		const bv = tBroadcast();
 		return [
-			{ label: 'scalar', text: '10', shape: '()' },
-			{ label: 'row', text: row, shape: `(${last},)` },
-			{ label: 'column', text: col, shape: `(${first}, 1)` },
-			{ label: 'mismatch', text: bad, shape: `(${last === 2 ? 3 : 2},)` }
+			{ label: bv.presetScalar, text: '10', shape: '()' },
+			{ label: bv.presetRow, text: row, shape: `(${last},)` },
+			{ label: bv.presetColumn, text: col, shape: `(${first}, 1)` },
+			{ label: bv.presetMismatch, text: bad, shape: `(${last === 2 ? 3 : 2},)` }
 		];
 	});
 
@@ -70,7 +73,7 @@
 			return {
 				state: hover !== null ? (pos === hover ? 'focus' : 'dim') : copy ? 'ghost' : undefined,
 				group: hover === pos ? 0 : undefined,
-				title: copy ? `stretched copy of ${from} (not stored in memory)` : from
+				title: copy ? tBroadcast().stretchedCopyOf(from) : from
 			};
 		};
 	}
@@ -88,9 +91,9 @@
 </script>
 
 <div class="controls">
-	<div class="expr mono" aria-label="Operation">
+	<div class="expr mono" aria-label={tBroadcast().operation}>
 		<span>result = a</span>
-		<span class="segmented" role="group" aria-label="Operator">
+		<span class="segmented" role="group" aria-label={tBroadcast().operator}>
 			{#each OPS as op (op.id)}
 				<button type="button" aria-pressed={s.op === op.id} onclick={() => (s.op = op.id)}>{op.label}</button>
 			{/each}
@@ -98,10 +101,10 @@
 		<span>b</span>
 	</div>
 	<label class="b-input">
-		<span class="eyebrow">b — type numbers (new line = new row)</span>
+		<span class="eyebrow">{tBroadcast().bLabel}</span>
 		<textarea bind:value={s.b} rows={Math.min(5, Math.max(2, s.b.split('\n').length))} spellcheck="false" class="mono"></textarea>
 	</label>
-	<div class="presets" role="group" aria-label="Example shapes for b">
+	<div class="presets" role="group" aria-label={tBroadcast().exampleShapes}>
 		{#each presets as p (p.label)}
 			<button type="button" class="chip" aria-pressed={s.b === p.text} onclick={() => (s.b = p.text)}>
 				{p.label} <span class="mono muted">{p.shape}</span>
@@ -120,14 +123,14 @@
 	<div class="stage">
 		<figure>
 			<figcaption>
-				<code>a</code> <span class="muted">{formatShape(a.shape)}{aStretched ? ` → stretched to ${formatShape(result?.shape ?? [])}` : ''}</span>
+				<code>a</code> <span class="muted">{formatShape(a.shape)}{aStretched ? tBroadcast().stretchedTo(formatShape(result?.shape ?? [])) : ''}</span>
 			</figcaption>
 			<ArrayGrid info={stretchedA ?? a} name="a" decorate={stretchedA ? decorate(mapA, firstA, 'a', a) : undefined} onhover={(f) => (hover = f)} legend={false} size="small" />
 		</figure>
 		<div class="op mono" aria-hidden="true">{s.op}</div>
 		<figure>
 			<figcaption>
-				<code>b</code> <span class="muted">{formatShape(b.shape)}{bStretched ? ` → stretched to ${formatShape(result?.shape ?? [])}` : ''}</span>
+				<code>b</code> <span class="muted">{formatShape(b.shape)}{bStretched ? tBroadcast().stretchedTo(formatShape(result?.shape ?? [])) : ''}</span>
 			</figcaption>
 			<ArrayGrid info={stretchedB ?? b} name="b" decorate={stretchedB ? decorate(mapB, firstB, 'b', b) : undefined} onhover={(f) => (hover = f)} legend={false} size="small" />
 		</figure>
@@ -141,25 +144,22 @@
 	</div>
 	{#if result}
 		<p class="formula mono" aria-live="polite">
-			{#if formula}{formula}{:else}<span class="muted">Hover any element to see which values were combined.</span>{/if}
+			{#if formula}{formula}{:else}<span class="muted">{tBroadcast().hoverHint}</span>{/if}
 		</p>
 		<Explain>
-			<p>
-				NumPy lines the shapes up <strong>from the right</strong>. In each column the sizes must be equal, or one of
-				them must be 1 (a missing dimension counts as 1). Size-1 dimensions are <strong>stretched</strong> to match.
-			</p>
+			<p><RichText text={tBroadcast().p1} /></p>
 			{#if aStretched || bStretched}
-				<p>
-					Dashed cells are stretched copies — a <em>conceptual</em> picture. NumPy does not copy anything: it reuses the
-					same values by stepping through memory with stride 0.
-				</p>
+				<p><RichText text={tBroadcast().p2} /></p>
 			{/if}
 			<p>
-				Result dtype <code>{result.dtype}</code> comes from combining <code>{a.dtype}</code> and <code>{b.dtype}</code>{s.op === '/'
-					? ' — true division always gives floats'
-					: s.op === '>'
-						? ' — comparisons give booleans'
-						: ''}.
+				<RichText
+					text={tBroadcast().p3(
+						result.dtype,
+						a.dtype,
+						b.dtype,
+						s.op === '/' ? tBroadcast().divisionSuffix : s.op === '>' ? tBroadcast().comparisonSuffix : ''
+					)}
+				/>
 			</p>
 		</Explain>
 	{/if}

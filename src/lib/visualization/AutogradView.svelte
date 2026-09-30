@@ -17,9 +17,11 @@
 		type NodeId
 	} from '../torch/autograd';
 	import { TORCH_REFERENCE, TORCH_VERSION, colabUrl } from '../torch/translate';
+	import { tAutograd } from '../i18n/viz/torchAutograd';
 
 	let { lab }: { lab: Lab } = $props();
 
+	const ag = $derived(tAutograd());
 	const s = $derived(lab.settings.autograd);
 	const res = $derived(lab.resultFor('autograd'));
 	const ok = $derived(res && !res.error ? res : null);
@@ -145,7 +147,7 @@
 
 <div class="controls">
 	<fieldset class="leaves">
-		<legend class="eyebrow">Leaves</legend>
+		<legend class="eyebrow">{ag.leaves}</legend>
 		{#each LEAVES as l (l)}
 			<div class="leaf">
 				<label class="val">
@@ -158,7 +160,7 @@
 							const v = (e.currentTarget as HTMLInputElement).valueAsNumber;
 							s.values[l] = v;
 						}}
-						aria-label="value of {l} ({LEAF_ROLE[l]})"
+						aria-label={ag.valueOf(l, LEAF_ROLE[l])}
 					/>
 				</label>
 				<label class="rg">
@@ -169,13 +171,13 @@
 		{/each}
 	</fieldset>
 	<div class="phase">
-		<span class="segmented" role="group" aria-label="Direction">
-			<button type="button" aria-pressed={s.phase === 'forward'} onclick={() => setPhase('forward')}>Forward</button>
-			<button type="button" aria-pressed={s.phase === 'backward'} onclick={() => setPhase('backward')}>Backward</button>
+		<span class="segmented" role="group" aria-label={ag.direction}>
+			<button type="button" aria-pressed={s.phase === 'forward'} onclick={() => setPhase('forward')}>{ag.forward}</button>
+			<button type="button" aria-pressed={s.phase === 'backward'} onclick={() => setPhase('backward')}>{ag.backward}</button>
 		</span>
 		<button class="btn" type="button" onclick={animate} disabled={s.phase === 'backward' && !steps.length}>
 			<Icon name={player.playing ? 'pause' : 'play'} size={14} />
-			{player.playing ? 'Stop' : s.phase === 'forward' ? 'Animate forward' : 'Animate backward'}
+			{player.playing ? ag.stop : s.phase === 'forward' ? ag.animateForward : ag.animateBackward}
 		</button>
 	</div>
 </div>
@@ -187,9 +189,7 @@
 		class:tall={layout === TALL}
 		viewBox="0 0 {layout.width} {layout.height}"
 		role="img"
-		aria-label="Computational graph: m = w times x, pred = m plus b, diff = pred minus y, loss = diff squared. {s.phase === 'backward'
-			? 'Gradients flow from loss back to the leaves.'
-			: 'Values flow from the leaves to loss.'}"
+		aria-label={ag.graphAria(s.phase === 'backward')}
 	>
 		<defs>
 			<marker id="ag-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -233,7 +233,7 @@
 					</text>
 				{/if}
 				<text x={p.x + W / 2} y={p.y + H + 15} class="tag" text-anchor="middle">
-					{#if op}{isTracked ? op.gradFn : 'no grad_fn'}{:else}{isTracked ? 'requires_grad' : LEAF_ROLE[n as AutogradLeaf]}{/if}
+					{#if op}{isTracked ? op.gradFn : ag.noGradFn}{:else}{isTracked ? 'requires_grad' : LEAF_ROLE[n as AutogradLeaf]}{/if}
 				</text>
 			</g>
 		{/each}
@@ -241,33 +241,30 @@
 </div>
 
 <div class="legend small muted" aria-hidden="true">
-	<span><span class="swatch solid"></span> tracked by autograd</span>
-	<span><span class="swatch dashed"></span> not tracked</span>
-	{#if s.phase === 'backward'}<span><code>× 2 · diff</code> on an edge = local derivative (chain-rule factor)</span>{/if}
+	<span><span class="swatch solid"></span> {ag.trackedByAutograd}</span>
+	<span><span class="swatch dashed"></span> {ag.notTracked}</span>
+	{#if s.phase === 'backward'}<span><code>× 2 · diff</code> {ag.localDerivativeNote}</span>{/if}
 </div>
 
 {#if ok}
 	{#if s.phase === 'forward'}
-		<Explain title="Forward: compute the loss">
+		<Explain title={ag.forwardTitle}>
 			<ol class="chain">
 				{#each OP_NODES as node, i (node.id)}
 					<li class:active={activeForward?.id === node.id}>
 						<code>{node.id} = {node.expr}</code> =
 						<span class="mono">{node.expr.replace(/\b(w|x|m|b|pred|y|diff)\b/g, (v) => paren(value(v as NodeId)))} = <strong>{value(node.id)}</strong></span>
-						{#if tracked.has(node.id)}<span class="muted">· records <code>{node.gradFn}</code></span>{/if}
+						{#if tracked.has(node.id)}<span class="muted">· {ag.records} <code>{node.gradFn}</code></span>{/if}
 						{#if i === OP_NODES.length - 1}<span class="muted">(PyTorch: <code>loss.grad_fn</code> → {tracked.has('loss') ? `<${node.gradFn}>` : 'None'})</span>{/if}
 					</li>
 				{/each}
 			</ol>
-			<p class="muted">
-				Every operation on a tensor that requires grad remembers <em>how</em> it was made (its <code>grad_fn</code>) — that
-				record is the computational graph. Leaves have <code>grad_fn = None</code>.
-			</p>
+			<p class="muted">{ag.everyOpRemembers}</p>
 		</Explain>
 	{:else if steps.length}
-		<Explain title="Backward: the chain rule, from loss to the leaves">
+		<Explain title={ag.backwardTitle}>
 			<ol class="chain">
-				<li><code>loss.grad</code> starts at <strong>1</strong> (∂loss/∂loss)</li>
+				<li><code>loss.grad</code> {ag.lossGradStarts} <strong>1</strong> (∂loss/∂loss)</li>
 				{#each steps as e, i (e.from + e.to)}
 					<li
 						class:active={focusEdge === e}
@@ -280,51 +277,42 @@
 				{/each}
 			</ol>
 			<p>
-				Result: {#each LEAVES as l, i (l)}<code>{l}.grad</code> = <strong class="mono">{s.requiresGrad[l] ? gradOf(l) : 'None'}</strong
+				{ag.result} {#each LEAVES as l, i (l)}<code>{l}.grad</code> = <strong class="mono">{s.requiresGrad[l] ? gradOf(l) : 'None'}</strong
 					>{i < LEAVES.length - 1 ? ', ' : '.'}
 				{/each}
-				Leaves without <code>requires_grad</code> get no gradient.
+				{ag.noGradient}
 			</p>
 		</Explain>
 
-		<section class="descent" aria-label="Gradient descent step">
-			<h3 class="eyebrow">Use the gradients</h3>
-			<p class="small">
-				A gradient says how <code>loss</code> changes when a leaf grows. Stepping <em>against</em> it lowers the loss:
-				<code>w ← w − lr · w.grad</code>.
-			</p>
+		<section class="descent" aria-label={ag.useTheGradients}>
+			<h3 class="eyebrow">{ag.useTheGradients}</h3>
+			<p class="small">{ag.gradientSaysHow}</p>
 			<div class="step-row">
-				<label class="lr"><span class="mono">lr</span> <input type="number" step="any" min="0" bind:value={s.lr} aria-label="learning rate" /></label>
+				<label class="lr"><span class="mono">lr</span> <input type="number" step="any" min="0" bind:value={s.lr} aria-label={ag.learningRateAria} /></label>
 				<button class="btn primary" type="button" onclick={takeStep} disabled={!step || !trackedLeaves.length}>
-					<Icon name="stepForward" size={14} /> Take a step
+					<Icon name="stepForward" size={14} /> {ag.takeAStep}
 				</button>
 				{#if lossAfter}
-					<span class="mono small">loss {value('loss')} → <strong>{lossAfter}</strong></span>
+					<span class="mono small">{ag.lossArrow(value('loss'), lossAfter)}</span>
 				{/if}
 			</div>
 			<p class="muted small">
-				Real PyTorch <strong>adds</strong> new gradients to <code>.grad</code> on every <code>backward()</code> (e.g.
-				<code>w.grad</code> goes {TORCH_REFERENCE.autograd.example['w.grad']} → {TORCH_REFERENCE.autograd.accumulated['w.grad']} in the default example), so training
-				loops reset them with <code>optimizer.zero_grad()</code>.
+				{ag.accumulatesNote(TORCH_REFERENCE.autograd.example['w.grad'], TORCH_REFERENCE.autograd.accumulated['w.grad'])}
 			</p>
 		</section>
 	{:else}
 		<p class="notice-none" role="status">
 			<Icon name="info" size={15} />
-			<span>
-				No leaf requires grad, so PyTorch records no graph and <code>loss.backward()</code> fails with
-				<code>{TORCH_REFERENCE.autograd.noGrad}</code>. Tick <code>requires_grad</code> on <code>w</code> or <code>b</code>.
-			</span>
+			<span>{ag.noLeafRequiresGrad(TORCH_REFERENCE.autograd.noGrad)}</span>
 		</p>
 	{/if}
 {/if}
 
 <div class="torch-row">
-	<TorchCode code={autogradTorchCode(s)} title="The same in PyTorch" />
+	<TorchCode code={autogradTorchCode(s)} title={ag.sameInPytorch} />
 	<p class="small muted">
-		ArrayLab computes these numbers with NumPy in float32, writing out the chain rule that <code>loss.backward()</code> applies
-		(see <em>Code that ran</em>). The grad_fn names and error messages were recorded with PyTorch {TORCH_VERSION}.
-		<a href={colabUrl('pytorch.ipynb')} target="_blank" rel="noopener">Run it with real PyTorch in Colab</a>.
+		{ag.computesWithNumpy(TORCH_VERSION)}
+		<a href={colabUrl('pytorch.ipynb')} target="_blank" rel="noopener">{ag.runInColab}</a>.
 	</p>
 </div>
 

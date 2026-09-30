@@ -2,15 +2,22 @@
 	import type { Alignment } from '../array/broadcast';
 	import { explainColumn } from '../array/broadcast';
 	import { formatShape } from '../array/normalize';
+	import { t } from '../i18n/strings';
+	import { lang } from '../i18n/lang.svelte';
 
 	/** Right-aligned shape table showing NumPy's broadcasting rule column by column. */
 	let { names, shapes, alignment }: { names: string[]; shapes: number[][]; alignment: Alignment } = $props();
 
 	const width = $derived(alignment.columns.length);
-	const SYMBOL = { equal: '✓ equal', stretch: '↔ 1 stretches', missing: '+ missing → 1', conflict: '✕ conflict' };
+	const SYMBOL = $derived({
+		equal: t('shapeAlignment').equal,
+		stretch: t('shapeAlignment').stretch,
+		missing: t('shapeAlignment').missing,
+		conflict: t('shapeAlignment').conflict
+	});
 </script>
 
-<div class="alignment" role="table" aria-label="Broadcasting shape alignment" style:--cols={width}>
+<div class="alignment" role="table" aria-label={t('shapeAlignment').ariaLabel} style:--cols={width}>
 	<div class="row head" role="row">
 		<span role="columnheader" class="name"></span>
 		<span role="columnheader" class="shape muted">shape</span>
@@ -33,18 +40,14 @@
 		<span role="rowheader" class="name mono">result</span>
 		<span role="cell" class="shape mono">{alignment.resultShape ? formatShape(alignment.resultShape) : '—'}</span>
 		{#each alignment.columns as col, pos (pos)}
-			<span role="cell" class="dim mono {col.status}" title={explainColumn(col, names)}>
+			<span role="cell" class="dim mono {col.status}" title={explainColumn(col, names, lang.current)}>
 				{col.result ?? '✕'}
 				<span class="sym">{SYMBOL[col.status]}</span>
 			</span>
 		{/each}
 	</div>
 	<p class="summary" class:bad={!alignment.compatible}>
-		{#if alignment.compatible}
-			✓ Compatible: every column is equal or has a 1 (or a missing dimension).
-		{:else}
-			✕ Incompatible: at least one column has two different sizes and neither is 1.
-		{/if}
+		{alignment.compatible ? t('shapeAlignment').compatible : t('shapeAlignment').incompatible}
 	</p>
 </div>
 

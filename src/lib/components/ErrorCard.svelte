@@ -3,9 +3,10 @@
 	import { explainError } from '../array/errors';
 	import type { PyError } from '../runtime/protocol';
 	import { t } from '../i18n/strings';
+	import { lang } from '../i18n/lang.svelte';
 
 	let { error, diagram = true }: { error: PyError; diagram?: boolean } = $props();
-	const ex = $derived(explainError(error));
+	const ex = $derived(explainError(error, lang.current));
 </script>
 
 <div class="error-card" role="alert">

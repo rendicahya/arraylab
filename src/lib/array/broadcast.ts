@@ -49,22 +49,28 @@ export function alignShapes(shapes: number[][]): Alignment {
 }
 
 /** Human-readable reason for one column of the alignment table. */
-export function explainColumn(col: DimCheck, names: string[]): string {
+export function explainColumn(col: DimCheck, names: string[], lang: 'en' | 'id' = 'en'): string {
+	const id = lang === 'id';
 	const parts = col.dims.map((d, i) => `${names[i]}: ${d ?? '—'}`).join(', ');
+	const and = id ? 'dan' : 'and';
 	switch (col.status) {
 		case 'equal':
-			return `${parts} → equal, keep ${col.result}`;
+			return id ? `${parts} → sama, pertahankan ${col.result}` : `${parts} → equal, keep ${col.result}`;
 		case 'stretch': {
 			const stretched = col.dims
 				.map((d, i) => (d === 1 && col.result !== 1 ? names[i] : null))
 				.filter(Boolean);
-			return `${parts} → ${stretched.join(' and ')} has size 1, stretched to ${col.result}`;
+			return id
+				? `${parts} → ${stretched.join(` ${and} `)} berukuran 1, diregangkan menjadi ${col.result}`
+				: `${parts} → ${stretched.join(` ${and} `)} has size 1, stretched to ${col.result}`;
 		}
 		case 'missing': {
 			const missing = col.dims.map((d, i) => (d === null ? names[i] : null)).filter(Boolean);
-			return `${parts} → ${missing.join(' and ')} has no dimension here; treated as 1, then stretched to ${col.result}`;
+			return id
+				? `${parts} → ${missing.join(` ${and} `)} tidak memiliki dimensi di sini; dianggap 1, lalu diregangkan menjadi ${col.result}`
+				: `${parts} → ${missing.join(` ${and} `)} has no dimension here; treated as 1, then stretched to ${col.result}`;
 		}
 		case 'conflict':
-			return `${parts} → sizes differ and neither is 1: incompatible`;
+			return id ? `${parts} → ukuran berbeda dan tidak satu pun bernilai 1: tidak kompatibel` : `${parts} → sizes differ and neither is 1: incompatible`;
 	}
 }

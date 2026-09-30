@@ -186,6 +186,58 @@ const dict = {
 		labPage: {
 			title: 'Lab · ArrayLab',
 			hiddenH1: 'ArrayLab — free lab'
+		},
+		arrayGrid: {
+			moreColumnsNotShown: (n: string) => `${n} more columns not shown`,
+			moreRowsNotShown: (n: string) => `${n} more rows not shown`,
+			moreAlongAxis: (n: string, axis: number) => `+${n} more along axis ${axis}`,
+			axes: 'Axes',
+			scalar: 'scalar',
+			truncated: (count: string, preview: string, full: string) => `Array has ${count} elements. Showing a ${preview} preview of ${full}.`
+		},
+		shapeView: {
+			shapeOf: (name: string) => `Shape of ${name}`,
+			ndimHelp: 'number of entries in the shape (number of axes)',
+			totalElements: 'total elements',
+			scalarHelp: 'a 0-d array holds exactly one value'
+		},
+		memoryBar: {
+			label: (size: number, itemsize: number, nbytes: number) => `${size} elements × ${itemsize} bytes = ${nbytes} bytes`,
+			element: (i: number, itemsize: number) => `element ${i}: ${itemsize} bytes`
+		},
+		shapeAlignment: {
+			ariaLabel: 'Broadcasting shape alignment',
+			equal: '✓ equal',
+			stretch: '↔ 1 stretches',
+			missing: '+ missing → 1',
+			conflict: '✕ conflict',
+			compatible: '✓ Compatible: every column is equal or has a 1 (or a missing dimension).',
+			incompatible: '✕ Incompatible: at least one column has two different sizes and neither is 1.'
+		},
+		frameTable: {
+			series: 'Series',
+			dataFrame: 'DataFrame',
+			truncated: (kind: string, rows: string, cols: string, shownRows: number, shownCols: string) =>
+				`${kind} has ${rows} rows${cols ? ` × ${cols} columns` : ''}. Showing the first ${shownRows}${shownCols ? ` × ${shownCols}` : ''}.`,
+			gridLabel: (name: string, kind: string, rows: number, cols: string) => `${name}: ${kind} with ${rows} rows${cols ? ` and ${cols} columns` : ''}`,
+			noName: 'This Series has no name',
+			position: (i: number) => `position ${i}`,
+			moreColumns: (n: number) => `${n} more columns`,
+			moreRows: (n: number) => `${n} more rows`
+		},
+		arrayView: {
+			readingTheArray: 'Reading the array',
+			hoverHint: 'Hover or focus a cell to see its index.',
+			scalarExplain:
+				'A single value makes a 0-d array: shape (), ndim 0, size 1. It has no axes to move along.',
+			everyElement: (ndim: number, word: string) => `Every element has one index per axis — ${ndim} ${word}, because ndim is ${ndim}. The shape lists how long each axis is.`,
+			number: 'number',
+			numbers: 'numbers',
+			axisLength: (axis: number, len: number, ord: string, extra: string) =>
+				`has length ${len}: moving along it changes the ${ord} index${extra}`,
+			steppingBetween: (role: string) => ` — you step between ${role}`,
+			higherDimNote:
+				'Rows and columns are only names for the last two axes. With more dimensions, count axes from the outside in: axis 0 selects the outermost block.'
 		}
 	},
 	id: {
@@ -372,6 +424,58 @@ const dict = {
 		labPage: {
 			title: 'Lab · ArrayLab',
 			hiddenH1: 'ArrayLab — lab bebas'
+		},
+		arrayGrid: {
+			moreColumnsNotShown: (n: string) => `${n} kolom lagi tidak ditampilkan`,
+			moreRowsNotShown: (n: string) => `${n} baris lagi tidak ditampilkan`,
+			moreAlongAxis: (n: string, axis: number) => `+${n} lagi sepanjang axis ${axis}`,
+			axes: 'Axis',
+			scalar: 'skalar',
+			truncated: (count: string, preview: string, full: string) => `Array memiliki ${count} elemen. Menampilkan pratinjau ${preview} dari ${full}.`
+		},
+		shapeView: {
+			shapeOf: (name: string) => `Shape dari ${name}`,
+			ndimHelp: 'jumlah entri pada shape (jumlah axis)',
+			totalElements: 'total elemen',
+			scalarHelp: 'array 0-d menampung tepat satu nilai'
+		},
+		memoryBar: {
+			label: (size: number, itemsize: number, nbytes: number) => `${size} elemen × ${itemsize} byte = ${nbytes} byte`,
+			element: (i: number, itemsize: number) => `elemen ${i}: ${itemsize} byte`
+		},
+		shapeAlignment: {
+			ariaLabel: 'Penyelarasan shape untuk broadcasting',
+			equal: '✓ sama',
+			stretch: '↔ 1 diregangkan',
+			missing: '+ hilang → 1',
+			conflict: '✕ konflik',
+			compatible: '✓ Kompatibel: setiap kolom sama atau memiliki angka 1 (atau dimensi yang hilang).',
+			incompatible: '✕ Tidak kompatibel: ada kolom dengan dua ukuran berbeda dan tidak satu pun bernilai 1.'
+		},
+		frameTable: {
+			series: 'Series',
+			dataFrame: 'DataFrame',
+			truncated: (kind: string, rows: string, cols: string, shownRows: number, shownCols: string) =>
+				`${kind} memiliki ${rows} baris${cols ? ` × ${cols} kolom` : ''}. Menampilkan ${shownRows} pertama${shownCols ? ` × ${shownCols}` : ''}.`,
+			gridLabel: (name: string, kind: string, rows: number, cols: string) => `${name}: ${kind} dengan ${rows} baris${cols ? ` dan ${cols} kolom` : ''}`,
+			noName: 'Series ini tidak memiliki nama',
+			position: (i: number) => `posisi ${i}`,
+			moreColumns: (n: number) => `${n} kolom lagi`,
+			moreRows: (n: number) => `${n} baris lagi`
+		},
+		arrayView: {
+			readingTheArray: 'Membaca array',
+			hoverHint: 'Arahkan kursor atau fokus ke sebuah sel untuk melihat indeksnya.',
+			scalarExplain:
+				'Satu nilai tunggal membentuk array 0-d: shape (), ndim 0, size 1. Tidak ada axis untuk dilalui.',
+			everyElement: (ndim: number, word: string) => `Setiap elemen memiliki satu indeks per axis — ${ndim} ${word}, karena ndim-nya adalah ${ndim}. Shape mendaftar seberapa panjang tiap axis.`,
+			number: 'angka',
+			numbers: 'angka',
+			axisLength: (axis: number, len: number, ord: string, extra: string) =>
+				`memiliki panjang ${len}: melangkah sepanjangnya mengubah indeks ${ord}${extra}`,
+			steppingBetween: (role: string) => ` — kamu melangkah antar ${role}`,
+			higherDimNote:
+				'Baris dan kolom hanyalah nama untuk dua axis terakhir. Dengan dimensi lebih banyak, hitung axis dari luar ke dalam: axis 0 memilih blok paling luar.'
 		}
 	}
 } as const;

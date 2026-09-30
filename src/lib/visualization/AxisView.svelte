@@ -8,6 +8,8 @@
 	import { REDUCE_FNS } from '../lab/codegen';
 	import { axisRoles, formatIndex, formatShape, unravel } from '../array/normalize';
 	import { reductionGroup, valueAt } from '../array/inspect';
+	import { tAxis } from '../i18n/viz/axisIndexReshape';
+	import { lang } from '../i18n/lang.svelte';
 
 	let { lab }: { lab: Lab } = $props();
 
@@ -17,7 +19,7 @@
 	const result = $derived(res ? lab.target('result') : null);
 	const ndim = $derived(a?.ndim ?? lab.provisional?.ndim ?? 2);
 	const axisOptions = $derived([null, ...Array.from({ length: ndim }, (_, i) => i)]);
-	const roles = $derived(axisRoles(ndim));
+	const roles = $derived(axisRoles(ndim, lang.current));
 
 	// Keep the chosen axis valid when the array changes dimension.
 	$effect(() => {
@@ -57,7 +59,7 @@
 			group: g,
 			badge: b,
 			state: focusGroup === null ? undefined : g === focusGroup ? 'focus' : 'dim',
-			title: b === undefined ? 'combined into the single result' : `feeds result[${b}]`
+			title: b === undefined ? tAxis().combinedIntoSingle : tAxis().feedsResult(b)
 		};
 	}
 
@@ -76,22 +78,22 @@
 		const shown = terms.every((t) => t !== undefined) && members.length <= 12;
 		const out = valueAt(result, focusGroup) ?? '…';
 		const target = result.ndim === 0 ? 'result' : formatIndex('result', unravel(focusGroup, result.shape));
-		const list = shown ? terms.join(', ') : `${Math.round(a.size / Math.max(1, resultSize))} values`;
+		const list = shown ? terms.join(', ') : tAxis().valuesCount(Math.round(a.size / Math.max(1, resultSize)));
 		const expr: Record<string, string> = {
-			sum: shown ? terms.join(' + ') : `sum of ${list}`,
-			prod: shown ? terms.join(' × ') : `product of ${list}`,
-			mean: shown ? `(${terms.join(' + ')}) / ${terms.length}` : `mean of ${list}`,
-			max: `max(${list})`,
-			min: `min(${list})`,
-			argmax: `position of max(${list})`
+			sum: shown ? terms.join(' + ') : tAxis().sumOf(list),
+			prod: shown ? terms.join(' × ') : tAxis().productOf(list),
+			mean: shown ? `(${terms.join(' + ')}) / ${terms.length}` : tAxis().meanOf(list),
+			max: tAxis().maxOf(list),
+			min: tAxis().minOf(list),
+			argmax: tAxis().argmaxOf(list)
 		};
 		return `${target} = ${expr[s.fn]} = ${out}`;
 	});
 </script>
 
-<div class="controls" role="group" aria-label="Reduction settings">
+<div class="controls" role="group" aria-label={tAxis().settingsLabel}>
 	<div class="field">
-		<span class="eyebrow" id="fn-label">Function</span>
+		<span class="eyebrow" id="fn-label">{tAxis().functionLabel}</span>
 		<span class="segmented" role="group" aria-labelledby="fn-label">
 			{#each REDUCE_FNS as fn (fn.id)}
 				<button type="button" aria-pressed={s.fn === fn.id} onclick={() => (s.fn = fn.id)}>{fn.label}</button>
@@ -99,7 +101,7 @@
 		</span>
 	</div>
 	<div class="field">
-		<span class="eyebrow" id="axis-label">axis</span>
+		<span class="eyebrow" id="axis-label">{tAxis().axisLabel}</span>
 		<span class="segmented" role="group" aria-labelledby="axis-label">
 			{#each axisOptions as opt (String(opt))}
 				<button type="button" aria-pressed={s.axis === opt} onclick={() => (s.axis = opt)}>
@@ -114,7 +116,7 @@
 	</label>
 	<button class="btn" type="button" onclick={() => player.toggle(resultSize)} disabled={!valid}>
 		<Icon name={player.playing ? 'pause' : 'play'} size={15} />
-		{player.playing ? 'Stop' : 'Step through'}
+		{player.playing ? tAxis().stop : tAxis().stepThrough}
 	</button>
 </div>
 
@@ -153,46 +155,45 @@
 		{#if formula}
 			{formula}
 		{:else}
-			<span class="muted">Hover a result element (or press “Step through”) to see which values produced it.</span>
+			<span class="muted">{tAxis().formulaHint}</span>
 		{/if}
 	</p>
 	<Explain>
 		{#if s.axis === null}
 			<p>
-				<code>axis=None</code> combines <strong>all {a.size} elements</strong> into a single value{s.keepdims
-					? `, kept as shape ${formatShape(result.shape)} because of keepdims`
+				<code>axis=None</code> {tAxis().combines} <strong>{tAxis().allElements(a.size)}</strong> {tAxis().intoSingleValue}{s.keepdims
+					? tAxis().keptAsShape(formatShape(result.shape))
 					: ''}.
 			</p>
 		{:else}
 			<p>
-				<code>axis={s.axis}</code> collapses axis {s.axis} ({roles[s.axis]}, length {a.shape[s.axis]}).
-				Each result element combines the {a.shape[s.axis]} values whose indices differ
-				<em>only</em> in position {s.axis}. Cells with the same label (and color) feed the same result element.
+				<code>axis={s.axis}</code> {tAxis().collapsesAxis(s.axis, roles[s.axis], a.shape[s.axis])}{tAxis().eachResultCombines(
+					a.shape[s.axis]
+				)}
+				<em>{tAxis().only}</em>{tAxis().inPositionRest(s.axis)}
 			</p>
 			<p>
-				Shape: <code>{formatShape(a.shape)}</code> → <code>{formatShape(result.shape)}</code>
+				{tAxis().shapeLabel}: <code>{formatShape(a.shape)}</code> → <code>{formatShape(result.shape)}</code>
 				{#if s.keepdims}
-					— keepdims leaves axis {s.axis} in place with length 1, so the result still lines up with
-					<code>a</code> for broadcasting.
+					{tAxis().keepdimsLeaves(s.axis)}
+					<code>a</code>{tAxis().forBroadcasting}
 				{:else}
-					— axis {s.axis} is removed.
+					{tAxis().axisRemoved(s.axis)}
 				{/if}
 			</p>
 		{/if}
 		{#if s.fn === 'mean'}
-			<p>The mean is a float even for integer input, so the dtype is <code>{result.dtype}</code>.</p>
+			<p>{tAxis().meanIsFloat} <code>{result.dtype}</code>.</p>
 		{/if}
 		{#if s.fn === 'argmax'}
 			<p>
-				<code>argmax</code> returns <strong>where</strong> the maximum is (its index{s.axis === null
-					? ' in the flattened array'
-					: ` along axis ${s.axis}`}), not the maximum itself.
+				<code>argmax</code> {tAxis().argmaxReturns} <strong>{tAxis().where}</strong>{tAxis().argmaxRest(
+					s.axis === null ? tAxis().inFlattened : tAxis().alongAxis(s.axis)
+				)}
 			</p>
 		{/if}
 		{#if a.ndim >= 2 && s.axis !== null}
-			<p class="muted">
-				Think “which index varies”, not “rows or columns” — that reading still works in 3-D and beyond.
-			</p>
+			<p class="muted">{tAxis().thinkWhichIndex}</p>
 		{/if}
 	</Explain>
 {/if}

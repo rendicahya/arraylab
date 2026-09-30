@@ -14,6 +14,8 @@
 <script lang="ts">
 	import type { ArrayInfo } from '../array/types';
 	import { axisRoles, flatIndex, formatCount, formatIndex } from '../array/normalize';
+	import { t } from '../i18n/strings';
+	import { lang } from '../i18n/lang.svelte';
 
 	type Props = {
 		info: ArrayInfo;
@@ -48,7 +50,7 @@
 	const ndim = $derived(info.ndim);
 	const preview = $derived(info.previewShape ?? info.shape);
 	const values = $derived(info.values ?? []);
-	const roles = $derived(axisRoles(ndim));
+	const roles = $derived(axisRoles(ndim, lang.current));
 	const rowAxis = $derived(ndim - 2);
 	const colAxis = $derived(ndim - 1);
 	const cellTag = $derived(onselect ? 'button' : 'div');
@@ -139,7 +141,7 @@
 	<div
 		class="grid2d"
 		role="grid"
-		aria-label={prefix.length ? blockTitle(prefix) : `${label ?? name}, shape ${shape.join(' × ') || 'scalar'}`}
+		aria-label={prefix.length ? blockTitle(prefix) : `${label ?? name}, shape ${shape.join(' × ') || t('arrayGrid').scalar}`}
 		style:grid-template-columns="auto repeat({cols}, minmax(var(--cell-min), max-content)){moreCols ? ' auto' : ''}"
 	>
 		{#if ndim >= 1}
@@ -164,12 +166,12 @@
 				{@render cell(ndim === 0 ? [] : ndim === 1 ? [j] : [...prefix, i, j])}
 			{/each}
 			{#if moreCols}
-				<div class="more" title="{formatCount(shape[colAxis] - cols)} more columns not shown">⋯</div>
+				<div class="more" title={t('arrayGrid').moreColumnsNotShown(formatCount(shape[colAxis] - cols))}>⋯</div>
 			{/if}
 		{/each}
 		{#if moreRows}
 			<div></div>
-			{#each range(cols) as j (j)}<div class="more" title="{formatCount(shape[rowAxis] - rows)} more rows not shown">⋮</div>{/each}
+			{#each range(cols) as j (j)}<div class="more" title={t('arrayGrid').moreRowsNotShown(formatCount(shape[rowAxis] - rows))}>⋮</div>{/each}
 		{/if}
 	</div>
 {/snippet}
@@ -193,7 +195,7 @@
 				</div>
 			{/each}
 			{#if preview[axis] < shape[axis]}
-				<div class="more-blocks">+{formatCount(shape[axis] - preview[axis])} more along axis {axis}</div>
+				<div class="more-blocks">{t('arrayGrid').moreAlongAxis(formatCount(shape[axis] - preview[axis]), axis)}</div>
 			{/if}
 		</div>
 	{/if}
@@ -202,8 +204,7 @@
 <div class="array-grid size-{size}" onkeydown={handleKey} role="presentation">
 	{#if info.truncated}
 		<p class="truncation" role="note">
-			Array has {formatCount(info.size)} elements. Showing a {preview.join(' × ')} preview of
-			{shape.join(' × ')}.
+			{t('arrayGrid').truncated(formatCount(info.size), preview.join(' × '), shape.join(' × '))}
 		</p>
 	{/if}
 	{#if ndim === 0}
@@ -212,7 +213,7 @@
 		{@render block([])}
 	{/if}
 	{#if legend && ndim > 0}
-		<ul class="legend" aria-label="Axes">
+		<ul class="legend" aria-label={t('arrayGrid').axes}>
 			{#each roles as role, axis (axis)}
 				<li class:marked={isMarked(axis)}>
 					<span class="mono">axis {axis}</span>

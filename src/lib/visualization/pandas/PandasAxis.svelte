@@ -5,6 +5,7 @@
 	import type { Lab } from '../../lab/lab.svelte';
 	import { PANDAS_REDUCE } from '../../pandas/codegen';
 	import { formatShape } from '../../array/normalize';
+	import { tv } from '../../i18n/viz/pandas';
 
 	/** df.sum(axis=0 / 1): the same reduction as NumPy, but the result keeps labels. */
 	let { lab }: { lab: Lab } = $props();
@@ -26,7 +27,7 @@
 			group: g,
 			badge: result?.index[g],
 			state: hoverGroup === null ? undefined : g === hoverGroup ? 'focus' : 'dim',
-			title: `feeds result[${result ? quote(result.index[g]) : g}]`
+			title: tv('pandasAxis').feedsResult(String(result ? quote(result.index[g]) : g))
 		};
 	}
 	function decorateResult(i: number): CellDecor {
@@ -54,13 +55,13 @@
 			max: `max(${used.join(', ')})`,
 			min: `min(${used.join(', ')})`
 		};
-		return `result[${quote(result.index[hoverGroup])}] = ${expr[s.fn]} = ${out}${skipped ? `   (${skipped} NaN skipped)` : ''}`;
+		return `result[${quote(result.index[hoverGroup])}] = ${expr[s.fn]} = ${out}${skipped ? `   ${tv('pandasAxis').nanSkipped(skipped)}` : ''}`;
 	});
 </script>
 
-<div class="pd-row" role="group" aria-label="Reduction settings">
+<div class="pd-row" role="group" aria-label={tv('pandasAxis').settingsAria}>
 	<div class="pd-field">
-		<span class="eyebrow" id="pd-fn">Function</span>
+		<span class="eyebrow" id="pd-fn">{tv('pandasAxis').function}</span>
 		<span class="segmented" role="group" aria-labelledby="pd-fn">
 			{#each PANDAS_REDUCE as fn (fn)}
 				<button type="button" aria-pressed={s.fn === fn} onclick={() => (s.fn = fn)}>{fn}</button>
@@ -89,34 +90,29 @@
 		</figure>
 	</div>
 	<p class="pd-formula mono" aria-live="polite">
-		{#if formula}{formula}{:else}<span class="muted">Hover a value to see which values were combined.</span>{/if}
+		{#if formula}{formula}{:else}<span class="muted">{tv('pandasAxis').hoverPrompt}</span>{/if}
 	</p>
 	<Explain>
 		<p>
-			<code>axis={s.axis}</code> works exactly like NumPy's: it collapses axis {s.axis}, so
-			{#if s.axis === 0}
-				the <strong>rows</strong> are combined and you get <strong>one value per column</strong>.
-			{:else}
-				the <strong>columns</strong> are combined and you get <strong>one value per row</strong>.
-			{/if}
-			pandas also accepts the axis by name: <code>axis='{s.axis === 0 ? 'index' : 'columns'}'</code>.
+			{s.axis === 0 ? tv('pandasAxis').p1rows(s.axis) : tv('pandasAxis').p1cols(s.axis)}
+			{tv('pandasAxis').p1axisName(s.axis === 0 ? 'index' : 'columns')}
 		</p>
 		<p>
-			The difference: the result is a <strong>Series labeled by the {s.axis === 0 ? 'column' : 'row'} labels</strong>
-			({result.index.slice(0, 4).map(quote).join(', ')}{result.index.length > 4 ? ', …' : ''}). NumPy would return a bare array and
-			you would have to remember which number belongs to which {s.axis === 0 ? 'column' : 'row'}.
+			{tv('pandasAxis').p2(
+				s.axis === 0 ? tv('pandasAxis').columnWord : tv('pandasAxis').rowWord,
+				result.index.slice(0, 4).map(quote).join(', ') + (result.index.length > 4 ? ', …' : '')
+			)}
 		</p>
 		{#if hasNaN}
 			<p>
-				<strong>NaN is skipped.</strong> pandas reductions ignore missing values by default (<code>skipna=True</code>).
+				<strong>{tv('pandasAxis').nanSkippedNote}</strong>
 				{#if numpy}
-					NumPy does not: <code>np.{s.fn}(df.to_numpy(), axis={s.axis})</code> gives
-					<code>[{numpy.values?.join(', ')}]</code>.
+					{tv('pandasAxis').numpyDoesNot(s.fn, s.axis, numpy.values?.join(', ') ?? '')}
 				{/if}
 			</p>
 		{/if}
 		{#if s.fn === 'mean'}
-			<p class="muted">The mean is a float even for integer columns, like in NumPy.</p>
+			<p class="muted">{tv('pandasAxis').meanIsFloat}</p>
 		{/if}
 	</Explain>
 {/if}

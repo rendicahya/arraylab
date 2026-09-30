@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { ArrayInfo } from '../array/types';
 	import { axisRoles, formatCount } from '../array/normalize';
+	import { t } from '../i18n/strings';
+	import { lang } from '../i18n/lang.svelte';
 
 	let {
 		info,
@@ -8,10 +10,10 @@
 		highlightAxis = null
 	}: { info: ArrayInfo; name?: string; highlightAxis?: number | null } = $props();
 
-	const roles = $derived(axisRoles(info.ndim));
+	const roles = $derived(axisRoles(info.ndim, lang.current));
 </script>
 
-<div class="shape-view" aria-label="Shape of {name}">
+<div class="shape-view" aria-label={t('shapeView').shapeOf(name)}>
 	<div class="tuple mono">
 		<span class="lhs">{name}.shape = (</span>
 		{#each info.shape as n, axis (axis)}
@@ -28,7 +30,7 @@
 			<dt class="mono">ndim</dt>
 			<dd>
 				<strong class="mono">{info.ndim}</strong>
-				<span class="muted">— number of entries in the shape (number of axes)</span>
+				<span class="muted">— {t('shapeView').ndimHelp}</span>
 			</dd>
 		</div>
 		<div>
@@ -36,7 +38,7 @@
 			<dd>
 				<strong class="mono">{formatCount(info.size)}</strong>
 				<span class="muted">
-					— total elements{#if info.ndim > 1}: {info.shape.join(' × ')} = {formatCount(info.size)}{:else if info.ndim === 0}: a 0-d array holds exactly one value{/if}
+					— {t('shapeView').totalElements}{#if info.ndim > 1}: {info.shape.join(' × ')} = {formatCount(info.size)}{:else if info.ndim === 0}: {t('shapeView').scalarHelp}{/if}
 				</span>
 			</dd>
 		</div>

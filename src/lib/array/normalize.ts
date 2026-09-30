@@ -51,13 +51,17 @@ export function formatBytes(n: number): string {
  * The last axis runs along a row, the second-to-last down a column; anything further
  * out selects a 2-D block. Deliberately avoids "axis 0 means rows".
  */
-export function axisRoles(ndim: number): string[] {
+export function axisRoles(ndim: number, lang: 'en' | 'id' = 'en'): string[] {
+	const words =
+		lang === 'id'
+			? { elements: 'elemen', columns: 'kolom', rows: 'baris', blocks: 'blok', groups: 'kelompok blok' }
+			: { elements: 'elements', columns: 'columns', rows: 'rows', blocks: 'blocks', groups: 'groups of blocks' };
 	return Array.from({ length: ndim }, (_, axis) => {
 		const fromEnd = ndim - axis;
-		if (fromEnd === 1) return ndim === 1 ? 'elements' : 'columns';
-		if (fromEnd === 2) return 'rows';
-		if (fromEnd === 3) return 'blocks';
-		return 'groups of blocks';
+		if (fromEnd === 1) return ndim === 1 ? words.elements : words.columns;
+		if (fromEnd === 2) return words.rows;
+		if (fromEnd === 3) return words.blocks;
+		return words.groups;
 	});
 }
 
@@ -76,7 +80,8 @@ export function reshapeSuggestions(size: number, max = 6): string[] {
 	return out;
 }
 
-export function ordinal(n: number): string {
+export function ordinal(n: number, lang: 'en' | 'id' = 'en'): string {
+	if (lang === 'id') return `ke-${n}`;
 	const suffixes = ['th', 'st', 'nd', 'rd'];
 	const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : (suffixes[n % 10] ?? 'th');
 	return `${n}${suffix}`;

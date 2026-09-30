@@ -2,6 +2,7 @@
 	import type { CellDecor } from './ArrayGrid.svelte';
 	import type { FrameInfo } from '../array/types';
 	import { formatCount } from '../array/normalize';
+	import { t } from '../i18n/strings';
 
 	/**
 	 * A DataFrame (or Series, as one column) drawn as a grid of values framed by
@@ -68,14 +69,24 @@
 <div class="frame-table">
 	{#if info.truncated}
 		<p class="truncation" role="note">
-			{series ? 'Series' : 'DataFrame'} has {formatCount(info.shape[0])} rows{series ? '' : ` × ${formatCount(info.shape[1])} columns`}.
-			Showing the first {rows}{series ? '' : ` × ${cols}`}.
+			{t('frameTable').truncated(
+				series ? t('frameTable').series : t('frameTable').dataFrame,
+				formatCount(info.shape[0]),
+				series ? '' : formatCount(info.shape[1]),
+				rows,
+				series ? '' : String(cols)
+			)}
 		</p>
 	{/if}
 	<div
 		class="grid"
 		role="grid"
-		aria-label="{name}: {series ? 'Series' : 'DataFrame'} with {info.shape[0]} rows{series ? '' : ` and ${info.shape[1]} columns`}"
+		aria-label={t('frameTable').gridLabel(
+			name,
+			series ? t('frameTable').series : t('frameTable').dataFrame,
+			info.shape[0],
+			series ? '' : String(info.shape[1])
+		)}
 		style:grid-template-columns="auto repeat({cols}, minmax(var(--cell-min), max-content)){moreCols ? ' auto' : ''}"
 	>
 		<div class="corner" aria-hidden="true"></div>
@@ -86,14 +97,14 @@
 				class:hit={hitCols?.has(j)}
 				class:marked={axisMark === 0}
 				role="columnheader"
-				title={series && !info.columns[j] ? 'This Series has no name' : undefined}
+				title={series && !info.columns[j] ? t('frameTable').noName : undefined}
 			>
 				<span class="l">{info.columns[j]}</span>
-				{#if positions && !series}<span class="pos" title="position {j}">{j}</span>{/if}
+				{#if positions && !series}<span class="pos" title={t('frameTable').position(j)}>{j}</span>{/if}
 				{#if axisMark === 0}<span class="arrow" aria-hidden="true">↓</span>{/if}
 			</div>
 		{/each}
-		{#if moreCols}<div class="more" title="{moreCols} more columns">⋯</div>{/if}
+		{#if moreCols}<div class="more" title={t('frameTable').moreColumns(moreCols)}>⋯</div>{/if}
 
 		{#if dtypes}
 			<div class="dt-label" aria-hidden="true">dtype</div>
@@ -107,7 +118,7 @@
 		{#each range(rows) as i (i)}
 			<div class="lab row" class:hit={hitRows?.has(i)} class:marked={axisMark === 1} role="rowheader">
 				<span class="l">{info.index[i]}</span>
-				{#if positions && info.indexType !== 'RangeIndex'}<span class="pos" title="position {i}">{i}</span>{/if}
+				{#if positions && info.indexType !== 'RangeIndex'}<span class="pos" title={t('frameTable').position(i)}>{i}</span>{/if}
 				{#if axisMark === 1}<span class="arrow" aria-hidden="true">→</span>{/if}
 			</div>
 			{#each range(cols) as j (j)}
@@ -140,7 +151,7 @@
 		{/each}
 		{#if moreRows > 0}
 			<div class="more">⋮</div>
-			{#each range(cols) as j (j)}<div class="more" title="{moreRows} more rows">⋮</div>{/each}
+			{#each range(cols) as j (j)}<div class="more" title={t('frameTable').moreRows(moreRows)}>⋮</div>{/each}
 		{/if}
 	</div>
 </div>

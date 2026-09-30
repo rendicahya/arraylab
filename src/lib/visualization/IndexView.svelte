@@ -8,6 +8,8 @@
 	import { formatIndex, formatShape, unravel } from '../array/normalize';
 	import { idMap } from '../array/inspect';
 	import { describeIndex } from '../array/indexing';
+	import { tIndex } from '../i18n/viz/axisIndexReshape';
+	import { lang } from '../i18n/lang.svelte';
 
 	let { lab }: { lab: Lab } = $props();
 
@@ -65,7 +67,7 @@
 		return {
 			state: focusId === null || focusId === flat ? 'selected' : 'dim',
 			badge: advanced && result && result.ndim === 1 && result.size <= 30 ? hit.join(',') : undefined,
-			title: `selected → result position ${hit.join(', ')}`
+			title: tIndex().selectedResultPosition(hit.join(', '))
 		};
 	}
 
@@ -74,7 +76,7 @@
 		const from = id !== undefined && a ? formatIndex('a', unravel(id, a.shape)) : '';
 		return {
 			state: focusId !== null && id !== focusId ? 'dim' : focusId !== null ? 'selected' : undefined,
-			title: from ? `copied from ${from}` : undefined
+			title: from ? tIndex().copiedFrom(from) : undefined
 		};
 	}
 
@@ -84,7 +86,7 @@
 		s.expr = expr;
 	}
 
-	const parts = $derived(a ? describeIndex(s.expr, a.ndim) : []);
+	const parts = $derived(a ? describeIndex(s.expr, a.ndim, lang.current) : []);
 </script>
 
 <form class="controls" onsubmit={apply}>
@@ -95,15 +97,15 @@
 			oninput={onInput}
 			spellcheck="false"
 			autocomplete="off"
-			aria-label="Index expression inside a[ ]"
+			aria-label={tIndex().exprAriaLabel}
 			size={Math.max(8, draft.length + 1)}
 		/>
 		<span>]</span>
 	</label>
-	<button class="btn" type="submit" class:primary={pending}>Apply</button>
-	{#if pending}<span class="muted small">Press Enter to run this expression.</span>{/if}
+	<button class="btn" type="submit" class:primary={pending}>{tIndex().apply}</button>
+	{#if pending}<span class="muted small">{tIndex().pressEnter}</span>{/if}
 </form>
-<div class="presets" role="group" aria-label="Example indices">
+<div class="presets" role="group" aria-label={tIndex().examplesAria}>
 	{#each presets as p (p)}
 		<button type="button" class="chip mono" aria-pressed={s.expr === p} onclick={() => ((draft = p), (s.expr = p))}>a[{p}]</button>
 	{/each}
@@ -114,7 +116,7 @@
 {#if a}
 	<div class="stage">
 		<figure>
-			<figcaption><code>a</code> <span class="muted">{formatShape(a.shape)} · click a cell to index it</span></figcaption>
+			<figcaption><code>a</code> <span class="muted">{formatShape(a.shape)} · {tIndex().clickToIndex}</span></figcaption>
 			<ArrayGrid info={a} decorate={decorateSource} onselect={pick} onhover={(f) => (hoverSource = f)} />
 		</figure>
 		{#if result}
@@ -122,10 +124,10 @@
 			<figure>
 				<figcaption>
 					<code>result</code>
-					<span class="muted">{scalarResult ? `scalar · ${result.pythonType}` : `${formatShape(result.shape)} · ${result.dtype}`}</span>
+					<span class="muted">{scalarResult ? `${tIndex().scalarWord} · ${result.pythonType}` : `${formatShape(result.shape)} · ${result.dtype}`}</span>
 					{#if !scalarResult}
 						<Tag tone={isView ? 'accent' : 'neutral'} title="np.shares_memory(result, a)">
-							{isView ? 'view of a' : 'copy'}
+							{isView ? tIndex().viewOfA : tIndex().copyWord}
 						</Tag>
 					{/if}
 				</figcaption>
@@ -142,16 +144,16 @@
 				{/each}
 			</ul>
 			<p>
-				Selected <strong>{selected.size}</strong> of {a.size} elements.
+				{tIndex().selectedOf(selected.size, a.size)}
 				{#if scalarResult}
-					With an integer for every axis you get <strong>one element</strong> — a NumPy scalar
-					(<code>{result.pythonType}</code>), not an array.
+					{tIndex().withIntegerIntro} <strong>{tIndex().oneElement}</strong>{tIndex().aNumpyScalar}
+					(<code>{result.pythonType}</code>){tIndex().notAnArray}
 				{:else}
-					Result shape <code>{formatShape(result.shape)}</code>, ndim {result.ndim}.
+					{tIndex().resultShapeLabel} <code>{formatShape(result.shape)}</code>{tIndex().ndimSuffix(result.ndim)}
 					{#if isView}
-						It is a <strong>view</strong>: it shares memory with <code>a</code>, so writing to it changes <code>a</code>.
+						{tIndex().viewSentence} <code>a</code>{tIndex().viewSentenceEnd} <code>a</code>.
 					{:else}
-						It is a <strong>copy</strong>: changing it does not change <code>a</code>.
+						{tIndex().copySentence} <code>a</code>.
 					{/if}
 				{/if}
 			</p>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ArrayInfo } from '../array/types';
+	import { t } from '../i18n/strings';
 
 	/** Bytes-per-element strip: one box per byte for the first few elements. */
 	let { info, maxElements = 6 }: { info: ArrayInfo; maxElements?: number } = $props();
@@ -7,10 +8,10 @@
 	const shown = $derived(Math.min(info.size, maxElements));
 </script>
 
-<div class="memory" aria-label="{info.size} elements × {info.itemsize} bytes = {info.nbytes} bytes">
+<div class="memory" aria-label={t('memoryBar').label(info.size, info.itemsize, info.nbytes)}>
 	<div class="strip" aria-hidden="true">
 		{#each Array.from({ length: shown }, (_, i) => i) as el (el)}
-			<span class="element" title="element {el}: {info.itemsize} bytes">
+			<span class="element" title={t('memoryBar').element(el, info.itemsize)}>
 				{#each Array.from({ length: info.itemsize }, (_, i) => i) as b (b)}<span class="byte"></span>{/each}
 			</span>
 		{/each}

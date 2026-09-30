@@ -10,6 +10,7 @@
 	import type { ShapeOp } from '../lab/types';
 	import { formatIndex, formatShape, reshapeSuggestions, unravel } from '../array/normalize';
 	import { idMap } from '../array/inspect';
+	import { tReshape } from '../i18n/viz/axisIndexReshape';
 
 	let { lab }: { lab: Lab } = $props();
 
@@ -87,7 +88,7 @@
 </script>
 
 <div class="controls">
-	<span class="segmented" role="group" aria-label="Operation">
+	<span class="segmented" role="group" aria-label={tReshape().operationAria}>
 		{#each OPS as op (op.id)}
 			<button type="button" aria-pressed={s.op === op.id} onclick={() => (s.op = op.id)}>{op.label}</button>
 		{/each}
@@ -95,23 +96,23 @@
 	{#if s.op === 'reshape'}
 		<label class="expr mono">
 			<span>a.reshape(</span>
-			<input bind:value={s.shape} spellcheck="false" aria-label="New shape" size={Math.max(6, s.shape.length + 1)} />
+			<input bind:value={s.shape} spellcheck="false" aria-label={tReshape().newShapeAria} size={Math.max(6, s.shape.length + 1)} />
 			<span>)</span>
 		</label>
 	{:else if s.op === 'transpose'}
 		<label class="expr mono">
 			<span>a.transpose(</span>
-			<input bind:value={s.axes} spellcheck="false" placeholder="reverse" aria-label="Axis order (optional)" size={Math.max(7, s.axes.length + 1)} />
+			<input bind:value={s.axes} spellcheck="false" placeholder={tReshape().reversePlaceholder} aria-label={tReshape().axisOrderAria} size={Math.max(7, s.axes.length + 1)} />
 			<span>)</span>
 		</label>
 	{/if}
 	<button class="btn" type="button" onclick={() => player.toggle(result?.size ?? 0)} disabled={!result}>
 		<Icon name={player.playing ? 'pause' : 'play'} size={15} />
-		{player.playing ? 'Stop' : 'Play reading order'}
+		{player.playing ? tReshape().stop : tReshape().playReadingOrder}
 	</button>
 </div>
 {#if s.op === 'reshape'}
-	<div class="presets" role="group" aria-label="Shapes that fit {size} elements">
+	<div class="presets" role="group" aria-label={tReshape().shapesFitAria(size)}>
 		{#each suggestions as sug (sug)}
 			<button type="button" class="chip mono" aria-pressed={s.shape === sug} onclick={() => (s.shape = sug)}>({sug})</button>
 		{/each}
@@ -131,52 +132,53 @@
 			<figure>
 				<figcaption>
 					<code>result</code> <span class="muted">{formatShape(result.shape)}</span>
-					<Tag tone={isView ? 'accent' : 'neutral'} title="np.shares_memory(result, a)">{isView ? 'view of a' : 'copy'}</Tag>
-					{#if !result.cContiguous}<Tag tone="warning" title="result.flags['C_CONTIGUOUS']">not C-contiguous</Tag>{/if}
+					<Tag tone={isView ? 'accent' : 'neutral'} title="np.shares_memory(result, a)">{isView ? tReshape().viewOfA : tReshape().copyWord}</Tag>
+					{#if !result.cContiguous}<Tag tone="warning" title="result.flags['C_CONTIGUOUS']">{tReshape().notCContiguous}</Tag>{/if}
 				</figcaption>
 				<ArrayGrid info={result} name="result" decorate={decorateResult} onhover={(f) => (hoverResult = f)} />
 			</figure>
 		{/if}
 	</div>
 	<p class="focus-line mono" aria-live="polite">
-		{#if focusLine}{focusLine}{:else}<span class="muted">Small numbers are each element's position in <code>a</code>'s reading order (0, 1, 2, …). Hover to follow one element.</span>{/if}
+		{#if focusLine}{focusLine}{:else}<span class="muted">{tReshape().focusHintPre} <code>a</code>{tReshape().focusHintPost}</span>{/if}
 	</p>
 
 	{#if result}
 		<Explain>
 			{#if s.op === 'reshape'}
 				<p>
-					Same {a.size} elements, <strong>same order</strong>, new shape:
+					{tReshape().sameElementsPrefix(a.size)} <strong>{tReshape().sameOrderWord}</strong>, {tReshape().newShapeWord}:
 					<code>{formatShape(a.shape)}</code> → <code>{formatShape(result.shape)}</code>
-					({result.shape.join(' × ')} = {result.size}). Read <code>result</code> row by row and the labels go
-					0, 1, 2, … exactly as in <code>a</code>.
+					{tReshape().dimsEqualsSize(result.shape.join(' × '), result.size)}. {tReshape().readIntro} <code>result</code>{tReshape().rowByRowRest}
+					<code>a</code>.
 				</p>
-				{#if s.shape.includes('-1')}<p><code>-1</code> asks NumPy to infer that dimension from the size.</p>{/if}
+				{#if s.shape.includes('-1')}<p><code>-1</code>{tReshape().inferDimensionRest}</p>{/if}
 				<p class="muted">
-					Not to be confused with <code>np.resize</code>, which may repeat or drop elements to reach a different size.
+					{tReshape().notToBeConfused} <code>np.resize</code>{tReshape().resizeRest}
 				</p>
 			{:else if s.op === 'transpose'}
 				<p>
-					Transpose reorders the axes{s.axes.trim() ? ` to (${s.axes})` : ' (reversed)'}{#if a.ndim === 2 && !s.axes.trim()}: element
-						<code>a[i, j]</code> moves to <code>result[j, i]</code>{:else if a.ndim === 3 && !s.axes.trim()}: element
-						<code>a[i, j, k]</code> moves to <code>result[k, j, i]</code>{/if}. Shape <code>{formatShape(a.shape)}</code> →
+					{tReshape().transposeReorders}{s.axes.trim() ? tReshape().toAxes(s.axes) : tReshape().reversedWord}{#if a.ndim === 2 && !s.axes.trim()}{tReshape().colonElement}
+						<code>a[i, j]</code>{tReshape().movesTo} <code>result[j, i]</code>{:else if a.ndim === 3 && !s.axes.trim()}{tReshape().colonElement}
+						<code>a[i, j, k]</code>{tReshape().movesTo} <code>result[k, j, i]</code>{/if}. {tReshape().shapeLabel} <code>{formatShape(a.shape)}</code> →
 					<code>{formatShape(result.shape)}</code>.
 				</p>
 				<p>
-					{orderPreserved ? 'Here the reading order happens to be unchanged.' : 'The reading order changes: press “Play reading order” and watch the source jump.'}
-					No data moves: the result is a {isView ? 'view' : 'copy'} with swapped strides{result.cContiguous ? '' : ', so it is no longer C-contiguous'}.
+					{orderPreserved ? tReshape().readingOrderUnchanged : tReshape().readingOrderChanges}
+					{tReshape().noDataMoves} {isView ? tReshape().viewWord : tReshape().copyWord} {tReshape().withSwappedStrides}{result.cContiguous ? '' : tReshape().soNoLongerCContiguous}.
 				</p>
 			{:else if s.op === 'flatten'}
-				<p><code>flatten()</code> always returns a new 1-D <strong>copy</strong> in reading order.</p>
+				<p><code>flatten()</code> {tReshape().flattenSentence}</p>
 			{:else}
 				<p>
-					<code>ravel()</code> returns 1-D in reading order — a <strong>view</strong> when possible (no copy), otherwise a copy.
-					Here it is a <strong>{isView ? 'view' : 'copy'}</strong>.
+					<code>ravel()</code> {tReshape().ravelIntro} <strong>{tReshape().viewWord}</strong> {tReshape().ravelOutro}
+					{tReshape().hereItIsWord} <strong>{isView ? tReshape().viewWord : tReshape().copyWord}</strong>.
 				</p>
 			{/if}
 			<p>
-				<strong>{isView ? 'View' : 'Copy'}:</strong>
-				{isView ? 'writing into result would also change a.' : 'result has its own memory; changing it leaves a untouched.'}
+				<strong>{isView ? tReshape().viewColon : tReshape().copyColon}</strong>
+				{isView ? tReshape().writingChanges : tReshape().resultOwnMemoryRest}
+				<code>a</code>.
 			</p>
 		</Explain>
 	{/if}

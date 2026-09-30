@@ -3,12 +3,14 @@
 	import Explain from '../components/Explain.svelte';
 	import Icon from '../components/Icon.svelte';
 	import RunStatus from '../components/RunStatus.svelte';
+	import RichText from '../components/RichText.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import { Player } from '../lab/player.svelte';
 	import { VECTOR_OPS, benchmarkCode } from '../lab/codegen';
 	import { runtime } from '../runtime/executor.svelte';
 	import { formatShape } from '../array/normalize';
 	import { valueAt } from '../array/inspect';
+	import { tVectorize } from '../i18n/viz/broadcastVectorizeDtype';
 
 	let { lab }: { lab: Lab } = $props();
 
@@ -70,7 +72,7 @@
 
 <div class="controls">
 	<div class="field">
-		<span class="eyebrow" id="vop">Operation on each element x</span>
+		<span class="eyebrow" id="vop">{tVectorize().operationOnX}</span>
 		<span class="segmented" role="group" aria-labelledby="vop">
 			{#each VECTOR_OPS as o (o.id)}
 				<button type="button" aria-pressed={s.op === o.id} onclick={() => (s.op = o.id)}>{o.label}</button>
@@ -79,7 +81,7 @@
 	</div>
 	<button class="btn" type="button" onclick={() => player.toggle(steps.length + 1)} disabled={!vec}>
 		<Icon name={player.playing ? 'pause' : 'play'} size={15} />
-		{player.playing ? 'Stop' : 'Animate loop vs vectorized'}
+		{player.playing ? tVectorize().stop : tVectorize().animate}
 	</button>
 </div>
 
@@ -87,8 +89,8 @@
 
 {#if a && vec}
 	<div class="compare">
-		<section class="panel" aria-label="Python loop">
-			<h3>Python loop <span class="muted">— one element at a time</span></h3>
+		<section class="panel" aria-label={tVectorize().pythonLoop}>
+			<h3>{tVectorize().pythonLoop} <span class="muted">{tVectorize().oneAtATime}</span></h3>
 			<pre class="snippet">for x in a.ravel():
     out.append({op.loop})</pre>
 			<ol class="steps mono">
@@ -99,13 +101,13 @@
 						<span class="y">{loopStep === null || i <= loopStep ? step.y : '?'}</span>
 					</li>
 				{/each}
-				{#if a.size > MAX_STEPS}<li class="muted">… {a.size - MAX_STEPS} more iterations</li>{/if}
+				{#if a.size > MAX_STEPS}<li class="muted">{tVectorize().moreIterations(a.size - MAX_STEPS)}</li>{/if}
 			</ol>
-			<p class="note">{a.size} separate Python operations, each on one number.</p>
+			<p class="note">{tVectorize().loopNote(a.size)}</p>
 		</section>
 
-		<section class="panel" aria-label="Vectorized">
-			<h3>Vectorized <span class="muted">— the whole array at once</span></h3>
+		<section class="panel" aria-label={tVectorize().vectorized}>
+			<h3>{tVectorize().vectorized} <span class="muted">{tVectorize().wholeArrayAtOnce}</span></h3>
 			<pre class="snippet">vec_result = {op.vector}   # ufunc: {op.ufunc}</pre>
 			<div class="vec-stage">
 				<ArrayGrid info={a} decorate={decorateA} size="small" legend={false} />
@@ -113,10 +115,10 @@
 				{#if vecDone}
 					<ArrayGrid info={vec} name="vec_result" size="small" legend={false} />
 				{:else}
-					<span class="muted waiting">waiting for the loop…</span>
+					<span class="muted waiting">{tVectorize().waitingForLoop}</span>
 				{/if}
 			</div>
-			<p class="note">One NumPy call; the loop over elements happens inside compiled code.</p>
+			<p class="note">{tVectorize().vectorizedNote}</p>
 		</section>
 	</div>
 
@@ -127,19 +129,18 @@
 	<div class="bench">
 		<button class="btn" type="button" onclick={runBenchmark} disabled={benchRunning}>
 			<Icon name="timer" size={15} />
-			{benchRunning ? 'Measuring…' : `Measure speed on ${BENCH_N.toLocaleString('en-US')} elements`}
+			{benchRunning ? tVectorize().measuring : tVectorize().measureSpeed(BENCH_N.toLocaleString('en-US'))}
 		</button>
 		{#if bench}
-			<div class="bars" role="img" aria-label="Loop {bench.loop.toFixed(1)} ms, vectorized {bench.vec.toFixed(2)} ms">
-				<div class="bar-row"><span>loop</span><span class="bar loop" style:width="100%"></span><span class="mono">{bench.loop.toFixed(1)} ms</span></div>
+			<div class="bars" role="img" aria-label={tVectorize().barsAriaLabel(bench.loop.toFixed(1), bench.vec.toFixed(2))}>
+				<div class="bar-row"><span>{tVectorize().loop}</span><span class="bar loop" style:width="100%"></span><span class="mono">{bench.loop.toFixed(1)} ms</span></div>
 				<div class="bar-row">
-					<span>vectorized</span>
+					<span>{tVectorize().vector}</span>
 					<span class="bar vec" style:width="{Math.max(0.5, (bench.vec / bench.loop) * 100)}%"></span>
 					<span class="mono">{bench.vec.toFixed(2)} ms</span>
 				</div>
 				<p class="muted small">
-					≈ {ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}× faster here. Measured live in your browser (Python compiled to
-					WebAssembly); exact numbers differ on a desktop Python, the gap is typically similar or larger.
+					{tVectorize().fasterNote(ratio >= 10 ? String(Math.round(ratio)) : ratio.toFixed(1))}
 				</p>
 			</div>
 		{/if}
@@ -148,14 +149,9 @@
 
 	<Explain>
 		<p>
-			Both versions compute the same values of shape <code>{formatShape(vec.shape)}</code>. The loop runs Python code
-			{a.size} times; <code>{op.vector}</code> hands the whole array to a NumPy <strong>ufunc</strong>
-			(<code>{op.ufunc}</code>) that loops in compiled code.
+			<RichText text={tVectorize().explainP1(formatShape(vec.shape), a.size, op.vector, op.ufunc)} />
 		</p>
-		<p class="muted">
-			The animation is a conceptual model: NumPy does not literally process elements in this visual sequence
-			(it may use SIMD instructions and other optimizations), but the result is the same.
-		</p>
+		<p class="muted">{tVectorize().explainP2}</p>
 	</Explain>
 {/if}
 

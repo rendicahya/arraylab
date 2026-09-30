@@ -2,6 +2,7 @@
 	import Explain from '../../components/Explain.svelte';
 	import type { Lab } from '../../lab/lab.svelte';
 	import { PANDAS_OPS } from '../../pandas/codegen';
+	import { tv } from '../../i18n/viz/pandas';
 
 	/** s1 + s2: pandas matches labels, NumPy matches positions. */
 	let { lab }: { lab: Lab } = $props();
@@ -45,13 +46,13 @@
 	const method = $derived(PANDAS_OPS.find((o) => o.op === s.op)?.method ?? 'add');
 </script>
 
-<div class="pd-row" role="group" aria-label="Two Series">
+<div class="pd-row" role="group" aria-label={tv('pandasAlign').twoSeriesAria}>
 	<label class="pd-field">
-		<span class="eyebrow">s1 · label:value</span>
+		<span class="eyebrow">{tv('pandasAlign').s1Label}</span>
 		<input class="pd-input" bind:value={s.left} spellcheck="false" autocomplete="off" size="18" />
 	</label>
 	<div class="pd-field">
-		<span class="eyebrow" id="pd-op">op</span>
+		<span class="eyebrow" id="pd-op">{tv('pandasAlign').opLabel}</span>
 		<span class="segmented" role="group" aria-labelledby="pd-op">
 			{#each PANDAS_OPS as o (o.op)}
 				<button type="button" aria-pressed={s.op === o.op} onclick={() => (s.op = o.op)}>{o.op}</button>
@@ -59,7 +60,7 @@
 		</span>
 	</div>
 	<label class="pd-field">
-		<span class="eyebrow">s2 · label:value</span>
+		<span class="eyebrow">{tv('pandasAlign').s2Label}</span>
 		<input class="pd-input" bind:value={s.right} spellcheck="false" autocomplete="off" size="18" />
 	</label>
 	<label class="check">
@@ -71,7 +72,7 @@
 {#if result && s1 && s2}
 	<div class="compare">
 		<section class="panel" aria-labelledby="by-label">
-			<h3 id="by-label">pandas · matched by <strong>label</strong></h3>
+			<h3 id="by-label">{tv('pandasAlign').byLabelHeading}</h3>
 			<table class="aligned">
 				<thead>
 					<tr><th scope="col">label</th><th scope="col">s1</th><th></th><th scope="col">s2</th><th></th><th scope="col">result</th></tr>
@@ -87,7 +88,7 @@
 							<td class="op mono" aria-hidden="true">=</td>
 							<td class="val mono out" class:nan={row.out === 'NaN'}>
 								{row.out}
-								{#if gap}<span class="note">{row.l === null ? 'not in s1' : 'not in s2'}</span>{/if}
+								{#if gap}<span class="note">{row.l === null ? tv('pandasAlign').notInS1 : tv('pandasAlign').notInS2}</span>{/if}
 							</td>
 						</tr>
 					{/each}
@@ -96,7 +97,7 @@
 		</section>
 
 		<section class="panel" aria-labelledby="by-pos">
-			<h3 id="by-pos">NumPy · matched by <strong>position</strong></h3>
+			<h3 id="by-pos">{tv('pandasAlign').byPositionHeading}</h3>
 			<table class="aligned">
 				<thead>
 					<tr><th scope="col">pos</th><th scope="col">s1</th><th></th><th scope="col">s2</th><th></th><th scope="col">positional</th></tr>
@@ -119,43 +120,40 @@
 				</tbody>
 			</table>
 			{#if !positional}
-				<p class="pd-small err">NumPy cannot combine lengths {s1.shape[0]} and {s2.shape[0]}: they do not broadcast.</p>
+				<p class="pd-small err">{tv('pandasAlign').cannotCombine(s1.shape[0], s2.shape[0])}</p>
 			{/if}
 		</section>
 	</div>
 
 	<Explain>
 		<p>
-			pandas lines the two Series up by <strong>label</strong> before computing{#if firstMatch !== undefined}:
-				<code>s1[{q(firstMatch)}]</code> meets <code>s2[{q(firstMatch)}]</code>, whatever their positions{/if}. The result has the
-			<strong>union</strong> of the labels.
+			{firstMatch !== undefined
+				? tv('pandasAlign').linesUpWithMatch(q(firstMatch))
+				: tv('pandasAlign').linesUpNoMatch}
 		</p>
 		{#if unmatched.length}
 			{#if s.fill}
-				<p>
-					With <code>fill_value=0</code> a label that exists on only one side is combined with 0 instead — no NaN, but only
-					because you said what “missing” should mean.
-				</p>
+				<p>{tv('pandasAlign').withFillValue}</p>
 			{:else}
 				<p>
-					{unmatched.map(q).join(', ')} {unmatched.length === 1 ? 'exists' : 'exist'} on only one side, so the result there is
-					<strong>NaN</strong> (and the dtype becomes {result.dtypes[0]}). Nothing is silently paired with the wrong value.
+					{tv('pandasAlign').unmatchedNaN(
+						unmatched.map(q).join(', '),
+						unmatched.length === 1 ? tv('pandasAlign').exists : tv('pandasAlign').exist,
+						result.dtypes[0]
+					)}
 				</p>
 			{/if}
 		{:else}
-			<p>Every label exists in both Series, so every value has a partner.</p>
+			<p>{tv('pandasAlign').everyLabelExists}</p>
 		{/if}
 		{#if lengthsDiffer}
-			<p>NumPy only has positions, and arrays of lengths {s1.shape[0]} and {s2.shape[0]} cannot be combined at all.</p>
+			<p>{tv('pandasAlign').lengthsDiffer(s1.shape[0], s2.shape[0])}</p>
 		{:else if !sameOrder && mismatchedPairs}
-			<p>
-				<strong>NumPy pairs by position</strong>, so {mismatchedPairs} of the pairs combine values with different labels (⚠ rows) —
-				a silent mistake that alignment prevents.
-			</p>
+			<p>{tv('pandasAlign').pairsByPosition(mismatchedPairs)}</p>
 		{:else}
-			<p>The labels are in the same order, so here position and label agree and both give the same numbers.</p>
+			<p>{tv('pandasAlign').sameOrder}</p>
 		{/if}
-		<p class="muted">Broadcasting (chapter 06) is about <em>shapes</em>; alignment is about <em>labels</em>. pandas aligns first, then computes like NumPy.</p>
+		<p class="muted">{tv('pandasAlign').broadcastingNote}</p>
 	</Explain>
 {/if}
 

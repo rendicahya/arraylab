@@ -3,10 +3,12 @@
 	import MemoryBar from './MemoryBar.svelte';
 	import Explain from '../components/Explain.svelte';
 	import RunStatus from '../components/RunStatus.svelte';
+	import RichText from '../components/RichText.svelte';
 	import type { Lab } from '../lab/lab.svelte';
 	import { DTYPES } from '../lab/codegen';
 	import { formatShape } from '../array/normalize';
-	import { boolMap, describeDtype } from '../array/inspect';
+	import { boolMap } from '../array/inspect';
+	import { tDtype, describeDtypeLocalized } from '../i18n/viz/broadcastVectorizeDtype';
 
 	let { lab }: { lab: Lab } = $props();
 
@@ -22,12 +24,12 @@
 	const to = $derived(result?.dtypeKind ?? '');
 
 	function decorate(flat: number): CellDecor | undefined {
-		return changed.get(flat) ? { state: 'changed', badge: '≠', title: 'value changed by the conversion' } : undefined;
+		return changed.get(flat) ? { state: 'changed', badge: '≠', title: tDtype().valueChangedTitle } : undefined;
 	}
 </script>
 
 <div class="controls">
-	<span class="eyebrow" id="dt-label">Convert with <code>a.astype(…)</code></span>
+	<span class="eyebrow" id="dt-label"><RichText text={tDtype().convertWith} /></span>
 	<span class="segmented" role="group" aria-labelledby="dt-label">
 		{#each DTYPES as t (t)}
 			<button type="button" aria-pressed={s.target === t} onclick={() => (s.target = t)}>{t}</button>
@@ -57,43 +59,38 @@
 	{#if result}
 		<Explain>
 			<p>
-				<code>{result.dtype}</code>: {describeDtype(result.dtype)}.
+				<code>{result.dtype}</code>: {describeDtypeLocalized(result.dtype)}.
 				{#if range?.values}
-					It can store values from <code>{range.values[0]}</code> to <code>{range.values[1]}</code>.
+					<RichText text={tDtype().canStore(String(range.values[0]), String(range.values[1]))} />
 				{/if}
 			</p>
 			<p>
-				Same shape, same number of elements ({a.size}); only the bytes per element change:
-				<code>{a.itemsize}</code> → <code>{result.itemsize}</code>, so <code>nbytes</code> goes from {a.nbytes} to {result.nbytes}.
-				<code>astype</code> returns a new array (a copy).
+				<RichText text={tDtype().sameShape(a.size, a.itemsize, result.itemsize, a.nbytes, result.nbytes)} />
 			</p>
 			{#if changedCount > 0}
-				<p><strong>{changedCount}</strong> value{changedCount === 1 ? '' : 's'} changed (dashed, marked ≠):</p>
+				<p><RichText text={tDtype().valuesChanged(changedCount)} /></p>
 			{:else}
-				<p>No value changed — every element is exactly representable in <code>{result.dtype}</code>.</p>
+				<p><RichText text={tDtype().noValueChanged(result.dtype)} /></p>
 			{/if}
 			<ul>
 				{#if 'fc'.includes(from) && from && 'iu'.includes(to) && to}
-					<li>Float → integer <strong>truncates toward zero</strong> (2.7 → 2, −1.5 → −1). nan and inf have no integer value.</li>
+					<li><RichText text={tDtype().floatToInt} /></li>
 				{/if}
 				{#if 'iu'.includes(from) && from && 'iu'.includes(to) && to && result.itemsize <= a.itemsize && changedCount > 0}
-					<li>Integers that do not fit <strong>wrap around</strong> (e.g. 300 in uint8 becomes 44 = 300 − 256). No error is raised by astype.</li>
+					<li><RichText text={tDtype().wrapAround} /></li>
 				{/if}
-				{#if to === 'b'}<li>To bool: <code>0</code> becomes False, <strong>any other value</strong> becomes True.</li>{/if}
-				{#if from === 'b' && to !== 'b'}<li>From bool: True → 1, False → 0.</li>{/if}
+				{#if to === 'b'}<li><RichText text={tDtype().toBool} /></li>{/if}
+				{#if from === 'b' && to !== 'b'}<li><RichText text={tDtype().fromBool} /></li>{/if}
 				{#if 'iub'.includes(from) && from && to === 'f'}
-					<li>Integer → float is exact for small values; very large integers can lose precision (float32 has ~7 significant digits, float64 ~16).</li>
+					<li><RichText text={tDtype().intToFloat} /></li>
 				{/if}
 				{#if from === 'f' && to === 'f' && result.itemsize < a.itemsize}
-					<li>Fewer bits → values are <strong>rounded</strong> to the nearest representable number.</li>
+					<li><RichText text={tDtype().rounded} /></li>
 				{/if}
-				{#if to === 'c'}<li>Complex numbers get an imaginary part of 0.</li>{/if}
+				{#if to === 'c'}<li><RichText text={tDtype().complexImaginary} /></li>{/if}
 			</ul>
 			{#if a.dtype === 'int32' && lab.settings.source.mode === 'literal' && !lab.settings.source.dtype}
-				<p class="muted">
-					Why is <code>a</code> int32? NumPy here runs on 32-bit WebAssembly, where the default integer is int32. On a
-					typical 64-bit desktop, NumPy 2 creates int64 for the same code.
-				</p>
+				<p class="muted"><RichText text={tDtype().int32Note} /></p>
 			{/if}
 		</Explain>
 	{/if}

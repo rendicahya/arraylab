@@ -9,6 +9,8 @@
 	import { formatIndex, formatShape, unravel } from '../array/normalize';
 	import { idMap } from '../array/inspect';
 	import { copyReason, strideSteps, type ViewKind } from '../array/views';
+	import { tViews } from '../i18n/viz/viewsCombineCode';
+	import { lang } from '../i18n/lang.svelte';
 
 	/** b = a<suffix>: same object, view or copy? Write into b and watch a. */
 	let { lab }: { lab: Lab } = $props();
@@ -124,7 +126,7 @@
 		a0 && a && a.cContiguous && !a0.truncated && a0.size <= MAX_STRIP ? (a0.values ?? []) : null
 	);
 	const bStrip = $derived(b0 && !b0.truncated && b0.size <= MAX_STRIP && kind === 'copy' ? (b0.values ?? []) : null);
-	const steps = $derived(b && kind === 'view' ? strideSteps(b.strides, b.itemsize) : []);
+	const steps = $derived(b && kind === 'view' ? strideSteps(b.strides, b.itemsize, lang.current) : []);
 
 	/** Elements of a that the write changed (compared with a fresh copy made before). */
 	const changed = $derived.by(() => {
@@ -150,20 +152,20 @@
 			bind:value={draft}
 			spellcheck="false"
 			autocomplete="off"
-			aria-label="What follows a, e.g. [:, 1] or .T (empty: b = a)"
-			placeholder="(nothing)"
+			aria-label={tViews().exprAria}
+			placeholder={tViews().nothing}
 			size={Math.max(8, draft.length + 1)}
 		/>
 	</label>
-	<button class="btn" type="submit" class:primary={pending} disabled={!valid}>Apply</button>
+	<button class="btn" type="submit" class:primary={pending} disabled={!valid}>{tViews().apply}</button>
 	<label class="check">
 		<input type="checkbox" bind:checked={s.write} />
-		<span>then write into b: <code>b[...] = 99</code></span>
+		<span>{tViews().writeIntoB} <code>b[...] = 99</code></span>
 	</label>
 </form>
-<div class="presets" role="group" aria-label="Ways to make b from a">
+<div class="presets" role="group" aria-label={tViews().presetsAria}>
 	{#each presets as p (p.suffix)}
-		<button type="button" class="chip mono" aria-pressed={s.suffix === p.suffix} title={p.note} onclick={() => pick(p.suffix)}>
+		<button type="button" class="chip mono" aria-pressed={s.suffix === p.suffix} title={(tViews().presetNote as Record<string, string>)[p.note] ?? p.note} onclick={() => pick(p.suffix)}>
 			b = a{p.suffix}
 		</button>
 	{/each}
@@ -174,16 +176,16 @@
 {#if a && a0 && b0 && kind}
 	<div class="stage">
 		<figure>
-			<figcaption><code>a</code> <span class="muted">{formatShape(a0.shape)}{s.write ? ' · before the write' : ''}</span></figcaption>
+			<figcaption><code>a</code> <span class="muted">{formatShape(a0.shape)}{s.write ? tViews().beforeWrite : ''}</span></figcaption>
 			<ArrayGrid info={a0} name="a" decorate={decorateA} onhover={(f) => (hoverA = f)} legend={false} />
 		</figure>
 		<div class="op" aria-hidden="true"><code>{code}</code><span class="big-arrow">⟶</span></div>
 		<figure>
 			<figcaption>
 				<code>b</code>
-				<span class="muted">{b0.kind === 'scalar' ? `scalar · ${b0.pythonType}` : `${formatShape(b0.shape)} · ${b0.dtype}`}</span>
-				<Tag tone={linked ? 'accent' : 'neutral'} title="np.shares_memory(a, b) → {shared ? 'True' : 'False'}">
-					{kind === 'same' ? 'the same array (b is a)' : kind === 'view' ? 'view of a' : kind === 'scalar' ? 'scalar (copied value)' : 'copy'}
+				<span class="muted">{b0.kind === 'scalar' ? tViews().scalarOf(b0.pythonType ?? '') : tViews().shapeOf(formatShape(b0.shape), b0.dtype)}</span>
+				<Tag tone={linked ? 'accent' : 'neutral'} title={tViews().sharesMemoryTitle(shared ? 'True' : 'False')}>
+					{kind === 'same' ? tViews().tag.same : kind === 'view' ? tViews().tag.view : kind === 'scalar' ? tViews().tag.scalar : tViews().tag.copy}
 				</Tag>
 			</figcaption>
 			<ArrayGrid info={b0} name="b" decorate={decorateB} onhover={(f) => (hoverB = f)} legend={false} />
@@ -191,11 +193,11 @@
 	</div>
 
 	{#if strip}
-		<section class="memory" aria-label="Memory">
-			<h3 class="eyebrow">Memory · one row of bytes, {a0.itemsize} per element</h3>
+		<section class="memory" aria-label={tViews().memoryLabel}>
+			<h3 class="eyebrow">{tViews().memoryHeading(a0.itemsize)}</h3>
 			<div class="strip-row">
-				<span class="who mono">{kind === 'same' ? 'a, b' : kind === 'view' ? 'a (b looks into it)' : 'a'}</span>
-				<ol class="strip" aria-label="a's elements in memory order">
+				<span class="who mono">{kind === 'same' ? tViews().whoAB : kind === 'view' ? tViews().whoAViewedByB : tViews().who}</span>
+				<ol class="strip" aria-label={tViews().stripAriaA}>
 					{#each strip as v, i (i)}
 						{@const hit = used.get(i)}
 						<li
@@ -203,7 +205,7 @@
 							class:hit={!!hit && linked}
 							class:copied={!!hit && !linked}
 							class:focus={focusId === i}
-							title={hit ? `${linked ? 'shared with' : 'copied to'} b position ${hit.join(', ')}` : undefined}
+							title={hit ? (linked ? tViews().sharedWith(hit.join(', ')) : tViews().copiedTo(hit.join(', '))) : undefined}
 						>
 							<span class="v mono">{v}</span>
 							{#if hit && linked && kind === 'view'}<span class="pos mono">b{hit.length === 1 ? `·${hit[0]}` : ''}</span>{/if}
@@ -214,37 +216,37 @@
 			{#if bStrip}
 				<div class="strip-row">
 					<span class="who mono">b</span>
-					<ol class="strip own" aria-label="b's own memory">
+					<ol class="strip own" aria-label={tViews().stripAriaB}>
 						{#each bStrip as v, i (i)}
 							<li class="slot own" class:focus={hoverB === i}><span class="v mono">{v}</span></li>
 						{/each}
 					</ol>
-					<span class="muted small">separate block</span>
+					<span class="muted small">{tViews().separateBlock}</span>
 				</div>
 			{/if}
 			{#if kind === 'view' && steps.length}
 				<p class="small muted">
-					<code>b.strides = ({b?.strides.join(', ')}{b?.strides.length === 1 ? ',' : ''})</code> — to move along
+					<code>b.strides = ({b?.strides.join(', ')}{b?.strides.length === 1 ? ',' : ''})</code> — {tViews().toMoveAlong}
 					{#each steps as st, ax (ax)}
-						{ax ? '; ' : ''}axis {ax} of b: <strong>{st}</strong>
+						{ax ? '; ' : ''}{tViews().axisOfB(ax)} <strong>{st}</strong>
 					{/each}
-					in <code>a</code>’s memory.
+					{tViews().inAMemory}
 				</p>
 			{/if}
 		</section>
 	{/if}
 
 	{#if s.write && b && a}
-		<div class="stage after" aria-label="After the write">
+		<div class="stage after" aria-label={tViews().afterWrite}>
 			<figure>
-				<figcaption><code>b</code> <span class="muted">after <code>b[...] = 99</code></span></figcaption>
+				<figcaption><code>b</code> <span class="muted">{tViews().after} <code>b[...] = 99</code></span></figcaption>
 				<ArrayGrid info={b} name="b" legend={false} size="small" />
 			</figure>
 			<figure>
 				<figcaption>
-					<code>a</code> <span class="muted">after</span>
+					<code>a</code> <span class="muted">{tViews().after}</span>
 					<Tag tone={changed.size ? 'warning' : 'success'}>
-						{changed.size ? `${changed.size} element${changed.size === 1 ? '' : 's'} changed` : 'unchanged'}
+						{changed.size ? tViews().elementsChanged(changed.size) : tViews().unchanged}
 					</Tag>
 				</figcaption>
 				<ArrayGrid info={a} name="a" decorate={decorateAfter} legend={false} size="small" />
@@ -254,35 +256,25 @@
 
 	<Explain>
 		{#if kind === 'same'}
-			<p>
-				<code>b = a</code> copies <strong>nothing</strong>: <code>b</code> is a second name for the same array
-				(<code>b is a</code> → True).
-				{#if s.write}Writing into <code>b</code> is writing into <code>a</code>.{/if}
-			</p>
+			<p><RichText text={tViews().explainSame(s.write)} /></p>
 		{:else if kind === 'view'}
-			<p>
-				<code>b</code> is a <strong>view</strong>: a new array object that looks into <code>a</code>’s memory
-				(<code>np.shares_memory(a, b)</code> → True). Nothing was copied — only a new shape and strides.
-			</p>
+			<p><RichText text={tViews().explainView} /></p>
 			{#if s.write}
-				<p>Writing into <code>b</code> changed <strong>{changed.size}</strong> element{changed.size === 1 ? '' : 's'} of <code>a</code> (dashed).</p>
+				<p><RichText text={tViews().explainViewWrite(changed.size)} /></p>
 			{:else}
-				<p>Tick <em>write into b</em> to see what that means for <code>a</code>.</p>
+				<p><RichText text={tViews().explainViewNoWrite} /></p>
 			{/if}
 		{:else if kind === 'scalar'}
-			<p>
-				One integer per axis gives a single element: a NumPy scalar, not an array. Its value is <strong>copied out</strong>, so it is
-				not linked to <code>a</code>{#if s.write} — and a scalar cannot be written into{/if}.
-			</p>
+			<p><RichText text={tViews().explainScalar(s.write)} /></p>
 		{:else}
 			<p>
-				<code>b</code> is a <strong>copy</strong> with its own memory (<code>np.shares_memory(a, b)</code> → False).
-				<RichText text={copyReason(s.suffix)} />
+				<RichText text={tViews().explainCopyIntro} />
+				<RichText text={copyReason(s.suffix, lang.current)} />
 			</p>
-			<p>{s.write ? 'Writing into b left a unchanged.' : 'Writing into b will not change a.'}</p>
+			<p><RichText text={tViews().explainCopyWrite(s.write)} /></p>
 		{/if}
 		{#if kind === 'view' || kind === 'same'}
-			<p class="muted">Need an independent array? <code>b = a{s.suffix}.copy()</code></p>
+			<p class="muted">{tViews().needIndependent} <code>b = a{s.suffix}.copy()</code></p>
 		{/if}
 	</Explain>
 {/if}
